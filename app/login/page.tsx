@@ -24,7 +24,7 @@ export default function Login(){
   setError(err?.code || err?.message || "Login failed");
 } finally {
   setLoading(false);
-  }
+  } } 
  return <main style={{minHeight:"100vh",display:"grid",gridTemplateColumns:"1fr 1fr"}}>
   <section style={{padding:"8%",background:"linear-gradient(145deg,#06245c,#1266e8)",color:"#fff",display:"flex",flexDirection:"column",justifyContent:"center"}}>
    <div style={{fontSize:30,fontWeight:900}}>🏢 SMC</div><h1 style={{fontSize:48}}>Welcome to<br/>SMC Office Management</h1>
