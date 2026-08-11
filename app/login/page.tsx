@@ -18,8 +18,10 @@ export default function Login(){
    const snap=await getDoc(doc(db,"users",cred.user.uid));
    const role=snap.data()?.role || "attendance";
    router.replace(role === "attendance" ? "/attendance" : "/dashboard");
-  }catch(err:any){
-   setError("ID/Password incorrect hai ya Firebase account setup nahi hua hai.");
+  catch(err:any){
+  console.log("LOGIN ERROR:", err);
+  setError(err?.code || err?.message || "Login failed");
+  }
   }finally{setLoading(false);}
  }
  return <main style={{minHeight:"100vh",display:"grid",gridTemplateColumns:"1fr 1fr"}}>
