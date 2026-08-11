@@ -1,2 +1,0 @@
-import Sidebar from "@/components/Sidebar";
-export default function Thekedar(){return <div style={{display:"flex"}}><Sidebar/><main style={{flex:1,padding:30}}><h1>Thekedar Work & Payment</h1><div className="card" style={{padding:25}}><p>Per-piece work, rate/piece, total amount, advance and final payable will be connected to Firebase.</p></div></main></div>}
