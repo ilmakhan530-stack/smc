@@ -1,0 +1,2 @@
+import Sidebar from "@/components/Sidebar";
+export default function Labour(){return <div style={{display:"flex"}}><Sidebar/><main style={{flex:1,padding:30}}><h1>Labour</h1><div className="card" style={{padding:25}}>Labour list and profiles will be connected to Firebase in the next implementation step.</div></main></div>}
