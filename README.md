@@ -1,20 +1,22 @@
-# SMC Office Management System — V0.4.0
+# SMC Office Management System — V0.5.0
 
-Approved UI direction:
-- Premium blue/white homepage
-- Unique login page
-- Admin dashboard
-- Card-based labour attendance
-- Manual In/Out time + IN NOW/OUT NOW
-- Labour overtime display
-- Thekedar work/payment kept separate from attendance
+## Firebase Authentication milestone
+- Firebase Email/Password login
+- No public signup
+- Firestore `users/{uid}` role lookup
+- Protected Dashboard and Attendance routes
+- Roles: admin, attendance, stock, accounts
+- Logout
+- Existing blue/white SMC UI retained
 
-Stack:
-Next.js + Firebase + Vercel + GitHub
+## Setup
+1. Create/choose a Firebase project.
+2. Enable Authentication > Email/Password.
+3. Create the first user in Firebase Authentication.
+4. In Firestore create `users/{UID}` with a `role` field, e.g. `admin`.
+5. Copy `.env.example` to `.env.local` and enter Firebase web app config.
+6. Commit and deploy on Vercel.
 
-Custom domain:
-smc.site.je
+Important: Firebase client configuration is safe to use in a web app, but Firestore Security Rules must protect the `users` collection and all business data. Do not put Firebase Admin SDK private keys in this repository.
 
-Note: Firebase credentials are intentionally not included. Copy `.env.example` to `.env.local` and add your Firebase project values.
-
-This milestone is a UI/functionality starter for live testing. Firebase authentication, Firestore persistence, Storage uploads and security rules are the next implementation step.
+Custom domain: smc.site.je
