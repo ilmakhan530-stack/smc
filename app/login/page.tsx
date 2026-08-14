@@ -2,44 +2,11 @@
 import { FormEvent, useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
+import { auth, db } from "@/lib/firebase";
 
 export default function Login(){
- const router=useRouter();
- const [email,setEmail]=useState("");
- const [password,setPassword]=useState("");
- const [error,setError]=useState("");
- const [loading,setLoading]=useState(false);
- async function submit(e:FormEvent){
-  e.preventDefault(); setError(""); setLoading(true);
-  try {
-  const cred = await signInWithEmailAndPassword(auth, email, password);
-  const snap = await getDoc(doc(db, "users", cred.user.uid));
-  const role = snap.data()?.role;
-
-  router.replace(role === "attendance" ? "/attendance" : "/dashboard");
-} catch (err: any) {
-  console.log("LOGIN ERROR:", err);
-  setError(err?.code || err?.message || "Login failed");
-} finally {
-  setLoading(false);
-  } } 
- return <main style={{minHeight:"100vh",display:"grid",gridTemplateColumns:"1fr 1fr"}}>
-  <section style={{padding:"8%",background:"linear-gradient(145deg,#06245c,#1266e8)",color:"#fff",display:"flex",flexDirection:"column",justifyContent:"center"}}>
-   <div style={{fontSize:30,fontWeight:900}}>🏢 SMC</div><h1 style={{fontSize:48}}>Welcome to<br/>SMC Office Management</h1>
-   <p style={{fontSize:18,lineHeight:1.7}}>Secure management for your office operations.</p><p>✓ Secure & Reliable<br/>✓ Role-based access<br/>✓ No public signup</p>
-  </section>
-  <section style={{display:"flex",alignItems:"center",justifyContent:"center",padding:30}}>
-   <form onSubmit={submit} className="card" style={{width:"min(460px,100%)",padding:35}}>
-    <div style={{textAlign:"center",fontSize:52}}>🏢</div><h2 style={{textAlign:"center",fontSize:30}}>Login to Your Account</h2>
-    <p style={{textAlign:"center",color:"#667085"}}>Use the ID and password provided by Admin.</p>
-    <label>Email / Login ID</label><input className="input" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Enter your email" autoComplete="username" required/>
-    <br/><br/><label>Password</label><input className="input" type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Enter password" autoComplete="current-password" required/>
-    {error && <p style={{color:"#d92d20",fontSize:14}}>{error}</p>}
-    <br/><button className="btn btn-primary" style={{width:"100%"}} disabled={loading}>{loading?"Signing in…":"Login"}</button>
-    <p style={{textAlign:"center",fontSize:13,color:"#667085"}}>Public signup is disabled.</p>
-   </form>
-  </section>
- </main>
-}
+ const router=useRouter(); const [email,setEmail]=useState(""); const [password,setPassword]=useState(""); const [loading,setLoading]=useState(false); const [error,setError]=useState("");
+ async function submit(e:FormEvent){e.preventDefault();setError("");setLoading(true);try{const cred=await signInWithEmailAndPassword(auth,email.trim(),password);const snap=await getDoc(doc(db,"users",cred.user.uid));if(!snap.exists())throw new Error("User role is not configured.");const role=snap.data()?.role;router.replace(role==="attendance"?"/attendance":"/dashboard");}catch(err:any){setError(err?.code||err?.message||"Login failed");}finally{setLoading(false);}}
+ return <main className="page"><section className="side"><img src="/smc-logo.jpg" alt="SMC logo"/><div className="eyebrow">SHIVANSH MACHINERY CO. (L.L.P.)</div><h1>Secure access to your<br/><span>office management system.</span></h1><p>Manage labour, attendance, salary, stock, parties, expenses and reports from one secure workspace.</p><b className="tag">QUALITY • TRUST • SERVICE</b></section><section className="formSide"><form onSubmit={submit}><img className="smallLogo" src="/smc-logo.jpg" alt="SMC logo"/><div className="eyebrow">AUTHORIZED USERS ONLY</div><h2>Welcome back</h2><p className="muted">Sign in with the ID and password provided by Admin.</p><label>Login ID / Email</label><input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Enter your login ID" autoComplete="username" required/><label>Password</label><input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder="Enter your password" autoComplete="current-password" required/>{error&&<div className="error">{error}</div>}<button disabled={loading}>{loading?"Signing in...":"Login"}</button><small>🔒 Secure & Protected System</small></form></section><style jsx>{`*{box-sizing:border-box}.page{min-height:100vh;display:grid;grid-template-columns:1.05fr .95fr;font-family:Arial,Helvetica,sans-serif}.side{padding:9%;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(145deg,#062657,#0b4a8e);color:#fff}.side>img{width:78px;height:78px;border-radius:50%;object-fit:contain;background:#fff}.eyebrow{margin-top:25px;color:#58bf82;font-size:11px;font-weight:900;letter-spacing:2px}.side h1{font-size:46px;line-height:1.08}.side h1 span{color:#68c78d}.side p{max-width:570px;color:#d9e6f5;font-size:17px;line-height:1.8}.tag{margin-top:25px;color:#72ce97;letter-spacing:2px;font-size:12px}.formSide{display:grid;place-items:center;background:#f5f8fc;padding:30px}.formSide form{width:min(450px,100%);padding:42px;background:#fff;border:1px solid #e0e8f1;border-radius:22px;box-shadow:0 25px 70px #173c6820}.smallLogo{width:58px;height:58px;object-fit:contain;border-radius:50%}.formSide h2{font-size:34px;color:#082f6b;margin:14px 0 7px}.muted{color:#68798f;line-height:1.6}.formSide label{display:block;font-size:13px;font-weight:800;margin:17px 0 7px}.formSide input{width:100%;padding:14px;border:1px solid #d7e1ed;border-radius:10px;font-size:15px}.formSide button{width:100%;margin-top:22px;padding:14px;border:0;border-radius:10px;background:#0a3472;color:#fff;font-size:16px;font-weight:800}.error{margin-top:13px;padding:10px;border-radius:8px;background:#fff0f0;color:#bd2d2d;font-size:13px}.formSide small{display:block;text-align:center;margin-top:22px;color:#6d7e93}@media(max-width:800px){.page{grid-template-columns:1fr}.side{padding:45px 8%}.side h1{font-size:36px}}
+`}</style></main>}
