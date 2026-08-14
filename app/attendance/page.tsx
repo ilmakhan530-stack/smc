@@ -160,12 +160,12 @@ export default function Attendance() {
           {error && <div style={{ background: "#fff1f1", border: "1px solid #f0caca", color: "#b42318", padding: 12, borderRadius: 10, marginBottom: 16, fontSize: 13 }}>{error}</div>}
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 14, marginBottom: 20 }}>
-            {[
+            {([
               ["Total", summary.total, "#1266e8"],
               ["Present", summary.present, "#168f67"],
               ["Absent", summary.absent, "#c93636"],
               ["Half Day", summary.half, "#b7791f"]
-            ].map(([label, value, color]) => (
+            ] as [string, number, string][]).map(([label, value, color]) => (
               <div className="card" key={label as string} style={{ padding: 18 }}>
                 <div style={{ color: "#71809a", fontSize: 12, fontWeight: 700 }}>{label}</div>
                 <b style={{ display: "block", marginTop: 5, color, fontSize: 25 }}>{value}</b>
