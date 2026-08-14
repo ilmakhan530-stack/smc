@@ -25,7 +25,7 @@ export default function Home() {
         </div>
         <div className={styles.heroProduct}>
           <div className={styles.productImageWrap}>
-            <img src="/lpg-regulator-red.jpg" alt="Red low pressure LPG regulator" className={styles.productImage} />
+            <img src="/lpg-regulators-omc.png" alt="IndianOil, Bharat Petroleum and HPCL LPG regulators" className={styles.productImage} />
             <div className={styles.productCaption}>LOW PRESSURE LPG REGULATOR</div>
           </div>
         </div>
@@ -34,7 +34,7 @@ export default function Home() {
       <section id="products" className={`${styles.products} ${styles.section}`}>
         <div className={styles.productShowcase}>
           <div className={styles.productPhotoCard}>
-            <img src="/lpg-regulator-red.jpg" alt="LPG low pressure regulator" />
+            <img src="/lpg-regulators-omc.png" alt="LPG regulators for major oil marketing companies" />
           </div>
           <div className={styles.productInfo}>
             <div className={styles.eyebrow}>OUR LPG REGULATOR</div>
