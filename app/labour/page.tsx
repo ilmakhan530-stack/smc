@@ -24,7 +24,7 @@ export default function LabourPage(){
   useEffect(()=>{
     const q=query(collection(db,"labour"),orderBy("createdAt","desc"));
     return onSnapshot(q,(snap)=>{
-      setLabours(snap.docs.map(d=>({id:d.id,...(d.data() as Omit<Labour,"id">)}))));
+      setLabours(snap.docs.map(d=>({id:d.id,...(d.data() as Omit<Labour,"id">)})));
       setLoading(false); setError("");
     },(e)=>{ setLoading(false); setError(e.message || "Unable to load labour data"); });
   },[]);
