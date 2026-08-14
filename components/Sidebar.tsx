@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, Users, UserRound, CalendarCheck, WalletCards, HardHat, Package, Handshake, ReceiptIndianRupee, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Users, UserRound, CalendarCheck, WalletCards, HardHat, WalletMinimal, Package, Handshake, ReceiptIndianRupee, BarChart3 } from "lucide-react";
 
 const items:any[]=[
   ["Dashboard","/dashboard",LayoutDashboard],
@@ -7,6 +7,7 @@ const items:any[]=[
   ["Staff","/staff",UserRound],
   ["Attendance","/attendance",CalendarCheck],
   ["Salary","/salary",WalletCards],
+  ["Advance","/advance",WalletMinimal],
   ["Thekedar Work","/thekedar",HardHat],
   ["Stock","#",Package],
   ["Party","#",Handshake],
