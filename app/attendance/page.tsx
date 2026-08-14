@@ -20,7 +20,20 @@ type RecordItem = {
   status: "Present" | "Absent" | "Half Day";
   inTime: string;
   outTime: string;
+  overtimeHours: number;
 };
+
+// Standard paid shift is 8 hours. Overtime is calculated automatically from In/Out time.
+function calculateOvertimeHours(inTime: string, outTime: string, status: RecordItem["status"]) {
+  if (status === "Absent" || !inTime || !outTime) return 0;
+  const [ih, im] = inTime.split(":").map(Number);
+  const [oh, om] = outTime.split(":").map(Number);
+  if (![ih, im, oh, om].every(Number.isFinite)) return 0;
+  let minutes = (oh * 60 + om) - (ih * 60 + im);
+  if (minutes < 0) minutes += 24 * 60;
+  const extra = Math.max(0, minutes - 8 * 60);
+  return Math.round((extra / 60) * 2) / 2;
+}
 
 const today = () => {
   const d = new Date();
@@ -74,7 +87,8 @@ export default function Attendance() {
           next[`${x.personType}_${x.personId}`] = {
             status: x.status || "Present",
             inTime: x.inTime || "",
-            outTime: x.outTime || ""
+            outTime: x.outTime || "",
+            overtimeHours: Number(x.overtimeHours || 0)
           };
         }
       });
@@ -90,16 +104,17 @@ export default function Attendance() {
   );
 
   const getRecord = (p: Person): RecordItem =>
-    records[`${p.type}_${p.id}`] || { status: "Present", inTime: "", outTime: "" };
+    records[`${p.type}_${p.id}`] || { status: "Present", inTime: "", outTime: "", overtimeHours: 0 };
 
   const updateLocal = (p: Person, patch: Partial<RecordItem>) => {
     const key = `${p.type}_${p.id}`;
-    setRecords(prev => ({ ...prev, [key]: { ...getRecord(p), ...patch } }));
+    setRecords(prev => { const next = { ...getRecord(p), ...patch } as RecordItem; next.overtimeHours = calculateOvertimeHours(next.inTime, next.outTime, next.status); return { ...prev, [key]: next }; });
   };
 
   async function save(p: Person) {
     const key = `${p.type}_${p.id}`;
     const r = getRecord(p);
+    const calculatedOT = calculateOvertimeHours(r.inTime, r.outTime, r.status);
     setSaving(key);
     setError("");
     try {
@@ -111,6 +126,7 @@ export default function Attendance() {
         status: r.status,
         inTime: r.inTime,
         outTime: r.outTime,
+        overtimeHours: calculatedOT,
         updatedAt: new Date().toISOString()
       });
     } catch (e: any) {
@@ -119,6 +135,8 @@ export default function Attendance() {
       setSaving(null);
     }
   }
+
+  const isSunday = new Date(`${date}T00:00:00`).getDay() === 0;
 
   const summary = filtered.reduce(
     (a, p) => {
@@ -174,16 +192,16 @@ export default function Attendance() {
           </div>
 
           <div className="card" style={{ padding: 20, overflowX: "auto" }}>
-            <h2 style={{ margin: "0 0 16px", color: "#17345f", fontSize: 18 }}>Daily Attendance</h2>
+            <h2 style={{ margin: "0 0 8px", color: "#17345f", fontSize: 18 }}>Daily Attendance</h2>{isSunday && <div style={{ marginBottom: 12, padding: "10px 12px", borderRadius: 10, background: "#fff7e6", border: "1px solid #f5d48a", color: "#8a5a00", fontWeight: 700, fontSize: 12 }}>Sunday: Labour working today receives 2× daily pay. Overtime is calculated automatically when Out Time is more than 8 hours after In Time.</div>}
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
               <thead>
                 <tr style={{ textAlign: "left", color: "#71809a", fontSize: 12, borderBottom: "1px solid #e8eef7" }}>
-                  {["Name", "Type", "Mobile", "Status", "In Time", "Out Time", "Action"].map(h => <th key={h} style={{ padding: "12px 10px" }}>{h}</th>)}
+                  {["Name", "Type", "Mobile", "Status", "In Time", "Out Time", "OT Hours", "Action"].map(h => <th key={h} style={{ padding: "12px 10px" }}>{h}</th>)}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={7} style={{ padding: 45, textAlign: "center", color: "#71809a" }}>No Labour or Staff records found.</td></tr>
+                  <tr><td colSpan={8} style={{ padding: 45, textAlign: "center", color: "#71809a" }}>No Labour or Staff records found.</td></tr>
                 ) : filtered.map(p => {
                   const r = getRecord(p);
                   const key = `${p.type}_${p.id}`;
@@ -199,6 +217,7 @@ export default function Attendance() {
                       </td>
                       <td style={{ padding: 12 }}><input className="input" type="time" value={r.inTime} disabled={r.status === "Absent"} onChange={e => updateLocal(p, { inTime: e.target.value })} /></td>
                       <td style={{ padding: 12 }}><input className="input" type="time" value={r.outTime} disabled={r.status === "Absent"} onChange={e => updateLocal(p, { outTime: e.target.value })} /></td>
+                      <td style={{ padding: 12, fontWeight: 800, color: "#082b68" }}>{calculateOvertimeHours(r.inTime, r.outTime, r.status) > 0 ? `${calculateOvertimeHours(r.inTime, r.outTime, r.status)} hr` : "—"}</td>
                       <td style={{ padding: 12 }}>
                         <button className="btn btn-primary" disabled={saving === key} onClick={() => save(p)} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                           {saving === key ? "Saving…" : <><Check size={15} /> Save</>}
