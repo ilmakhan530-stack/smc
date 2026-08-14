@@ -51,14 +51,44 @@ export default function Home() {
       </section>
 
       <section id="about" className={`${styles.about} ${styles.section}`}>
-        <div><div className={styles.eyebrow}>ABOUT SHIVANSH MACHINERY CO.</div><h2>Manufacturing with <span>purpose and precision.</span></h2></div>
-        <div className={styles.copy}><p>Shivansh Machinery Co. (L.L.P.) manufactures quality-focused LPG regulators designed for safe, reliable and efficient LPG pressure regulation.</p><p>Our products are developed with emphasis on precision, durability, safety and consistent performance.</p></div>
+        <div className={styles.aboutHeading}>
+          <div className={styles.eyebrow}>ABOUT SHIVANSH MACHINERY CO.</div>
+          <h2>Manufacturing with <span>purpose and precision.</span></h2>
+          <div className={styles.aboutStats}>
+            <div><strong>QUALITY</strong><span>Focused manufacturing</span></div>
+            <div><strong>SAFETY</strong><span>Reliable pressure control</span></div>
+            <div><strong>SUPPLY</strong><span>Professional service</span></div>
+          </div>
+        </div>
+        <div className={styles.aboutVisual}>
+          <div className={styles.aboutPanel}>
+            <img src="/lpg-regulators-omc.png" alt="SMC LPG regulator products" />
+            <div className={styles.aboutPanelText}><b>LPG REGULATOR MANUFACTURER</b><span>Precision • Safety • Reliability</span></div>
+          </div>
+          <div className={styles.copy}><p>Shivansh Machinery Co. (L.L.P.) manufactures quality-focused LPG regulators designed for safe, reliable and efficient LPG pressure regulation.</p><p>Our products are developed with emphasis on precision, durability, safety and consistent performance.</p></div>
+        </div>
       </section>
 
       <section className={`${styles.clients} ${styles.section}`}>
-        <div className={styles.eyebrow}>LPG REGULATORS FOR MAJOR OIL MARKETING COMPANIES</div>
-        <h2>Serving requirements associated with leading OMCs</h2>
-        <div className={styles.clientGrid}>{clients.map((c, i) => <div className={styles.clientCard} key={c}><div className={styles.clientNo}>0{i+1}</div><b>{c}</b><small>Quality-focused LPG regulator applications</small></div>)}</div>
+        <div className={styles.eyebrow}>OUR LPG REGULATOR APPLICATIONS</div>
+        <h2>Regulators for leading oil marketing companies</h2>
+        <div className={styles.companyGrid}>
+          <div className={styles.companyCard}>
+            <div className={styles.companyLogoWrap}><img src="/indianoil-logo.jpg" alt="IndianOil logo" className={styles.companyLogo} /></div>
+            <img src="/indianoil-regulator.jpg" alt="IndianOil LPG regulator" />
+            <div className={styles.companyBody}><div className={styles.companyNo}>01</div><h3>IndianOil</h3><b>Indian Oil Corporation Limited (IOCL)</b><p>LPG regulator applications associated with IndianOil domestic LPG products.</p></div>
+          </div>
+          <div className={styles.companyCard}>
+            <div className={styles.companyLogoWrap}><img src="/bpcl-logo.jpg" alt="Bharat Petroleum logo" className={styles.companyLogo} /></div>
+            <img src="/bpcl-regulator.jpg" alt="Bharat Petroleum LPG regulator" />
+            <div className={styles.companyBody}><div className={styles.companyNo}>02</div><h3>Bharat Petroleum</h3><b>Bharat Petroleum Corporation Limited (BPCL)</b><p>LPG regulator applications associated with Bharatgas LPG products.</p></div>
+          </div>
+          <div className={styles.companyCard}>
+            <div className={styles.companyLogoWrap}><img src="/hpcl-logo.jpg" alt="Hindustan Petroleum logo" className={styles.companyLogo} /></div>
+            <img src="/hpcl-regulator.jpg" alt="HPCL LPG regulator" />
+            <div className={styles.companyBody}><div className={styles.companyNo}>03</div><h3>Hindustan Petroleum</h3><b>Hindustan Petroleum Corporation Limited (HPCL)</b><p>LPG regulator applications associated with HP Gas LPG products.</p></div>
+          </div>
+        </div>
         <p className={styles.note}>Our manufacturing approach focuses on applicable specifications, quality requirements and regulatory standards relevant to LPG regulator products.</p>
       </section>
 
