@@ -6,7 +6,7 @@ const items:any[]=[
   ["Labour","/labour",Users],
   ["Staff","/staff",UserRound],
   ["Attendance","/attendance",CalendarCheck],
-  ["Salary","#",WalletCards],
+  ["Salary","/salary",WalletCards],
   ["Thekedar Work","/thekedar",HardHat],
   ["Stock","#",Package],
   ["Party","#",Handshake],
