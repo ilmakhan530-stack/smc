@@ -23,7 +23,31 @@ export default function Home() {
           <p>Shivansh Machinery Co. (L.L.P.) is a Meerut, Uttar Pradesh-based manufacturer specializing in LPG Regulators and related LPG gas-control products.</p>
           <div className={styles.chips}><span>Precision Manufacturing</span><span>Safe Pressure Regulation</span><span>Consistent Performance</span></div>
         </div>
-        <div className={styles.heroProduct}><div className={styles.ring}><div className={styles.regulator}>LPG<br /><strong>REGULATOR</strong></div></div></div>
+        <div className={styles.heroProduct}>
+          <div className={styles.productImageWrap}>
+            <img src="/lpg-regulator-red.jpg" alt="Red low pressure LPG regulator" className={styles.productImage} />
+            <div className={styles.productCaption}>LOW PRESSURE LPG REGULATOR</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="products" className={`${styles.products} ${styles.section}`}>
+        <div className={styles.productShowcase}>
+          <div className={styles.productPhotoCard}>
+            <img src="/lpg-regulator-red.jpg" alt="LPG low pressure regulator" />
+          </div>
+          <div className={styles.productInfo}>
+            <div className={styles.eyebrow}>OUR LPG REGULATOR</div>
+            <h2>Reliable pressure regulation for <span>safe LPG use.</span></h2>
+            <p>Our LPG regulators are designed with a focus on safe pressure regulation, dependable operation, durability and consistent performance.</p>
+            <div className={styles.productPoints}>
+              <div>✓ Low Pressure Regulation</div>
+              <div>✓ Durable Construction</div>
+              <div>✓ Consistent Performance</div>
+              <div>✓ Quality-Focused Manufacturing</div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section id="about" className={`${styles.about} ${styles.section}`}>
