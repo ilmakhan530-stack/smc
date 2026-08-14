@@ -75,17 +75,14 @@ export default function Home() {
         <div className={styles.companyGrid}>
           <div className={styles.companyCard}>
             <div className={styles.companyLogoWrap}><img src="/indianoil-logo.jpg" alt="IndianOil logo" className={styles.companyLogo} /></div>
-            <img src="/indianoil-regulator.jpg" alt="IndianOil LPG regulator" />
             <div className={styles.companyBody}><div className={styles.companyNo}>01</div><h3>IndianOil</h3><b>Indian Oil Corporation Limited (IOCL)</b><p>LPG regulator applications associated with IndianOil domestic LPG products.</p></div>
           </div>
           <div className={styles.companyCard}>
             <div className={styles.companyLogoWrap}><img src="/bpcl-logo.jpg" alt="Bharat Petroleum logo" className={styles.companyLogo} /></div>
-            <img src="/bpcl-regulator.jpg" alt="Bharat Petroleum LPG regulator" />
             <div className={styles.companyBody}><div className={styles.companyNo}>02</div><h3>Bharat Petroleum</h3><b>Bharat Petroleum Corporation Limited (BPCL)</b><p>LPG regulator applications associated with Bharatgas LPG products.</p></div>
           </div>
           <div className={styles.companyCard}>
             <div className={styles.companyLogoWrap}><img src="/hpcl-logo.jpg" alt="Hindustan Petroleum logo" className={styles.companyLogo} /></div>
-            <img src="/hpcl-regulator.jpg" alt="HPCL LPG regulator" />
             <div className={styles.companyBody}><div className={styles.companyNo}>03</div><h3>Hindustan Petroleum</h3><b>Hindustan Petroleum Corporation Limited (HPCL)</b><p>LPG regulator applications associated with HP Gas LPG products.</p></div>
           </div>
         </div>
