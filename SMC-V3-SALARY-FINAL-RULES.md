@@ -10,3 +10,4 @@ SMC V3 — Salary Final Rules
 9. Deduction input and Paid/Unpaid status are available in Salary.
 10. Negative balance carries forward to next month.
 11. Clicking a person's name opens salary history/details.
+12. Salary History now shows an Advance History table with every advance date and amount for the selected month, plus the total advance.
