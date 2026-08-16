@@ -2,8 +2,8 @@
 import React from "react";
 
 export type DetailRow={date:string;inTime?:string;outTime?:string;status:string;overtimeHours?:number;};
-export type AdvanceRow={date:string;amount:number;};
-export default function SalaryEmployeeDetail({open,onClose,name,type,month,monthlySalary,openingBalance,earnedSalary,sundayPay,overtimePay,advanceTotal,advanceHistory,deduction,paymentStatus,finalBalance,rows}:{open:boolean;onClose:()=>void;name:string;type:string;month:string;monthlySalary:number;openingBalance:number;earnedSalary:number;sundayPay:number;overtimePay:number;advanceTotal:number;advanceHistory:AdvanceRow[];deduction:number;paymentStatus:"Paid"|"Unpaid";paymentNotes:string;finalBalance:number;rows:DetailRow[]}){
+export type AdvanceRow={date:string;amount:number;note?:string;};
+export default function SalaryEmployeeDetail({open,onClose,name,type,month,monthlySalary,openingBalance,earnedSalary,sundayPay,overtimePay,advanceTotal,advanceHistory,deduction,paymentStatus,finalBalance,rows}:{open:boolean;onClose:()=>void;name:string;type:string;month:string;monthlySalary:number;openingBalance:number;earnedSalary:number;sundayPay:number;overtimePay:number;advanceTotal:number;advanceHistory:AdvanceRow[];deduction:number;paymentStatus:"Paid"|"Unpaid";paymentNotes?:string;finalBalance:number;rows:DetailRow[]}){
  if(!open)return null;
  const present=rows.filter(r=>r.status==="Present").length, absent=rows.filter(r=>r.status==="Absent").length, half=rows.filter(r=>r.status==="Half Day").length;
  const ot=rows.reduce((n,r)=>n+Number(r.overtimeHours||0),0);
@@ -19,19 +19,19 @@ export default function SalaryEmployeeDetail({open,onClose,name,type,month,month
     {advanceHistory.length===0
       ? <div style={{fontSize:13,color:"#71809a"}}>Is month me koi advance nahi liya.</div>
       : <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",minWidth:420}}>
-          <thead><tr style={{textAlign:"left",fontSize:12,color:"#71809a",borderBottom:"1px solid #e8eef7"}}><th style={{padding:9}}>Date</th><th style={{padding:9}}>Amount</th></tr></thead>
-          <tbody>{advanceHistory.map((a,i)=><tr key={i} style={{borderBottom:"1px solid #eef2f7"}}><td style={{padding:9}}>{a.date}</td><td style={{padding:9,fontWeight:800}}>₹ {Number(a.amount).toLocaleString("en-IN")}</td></tr>)}</tbody>
+          <thead><tr style={{textAlign:"left",fontSize:12,color:"#71809a",borderBottom:"1px solid #e8eef7"}}><th style={{padding:9}}>Date</th><th style={{padding:9}}>Amount</th><th style={{padding:9}}>Advance Note</th></tr></thead>
+          <tbody>{advanceHistory.map((a,i)=><tr key={i} style={{borderBottom:"1px solid #eef2f7"}}><td style={{padding:9}}>{a.date}</td><td style={{padding:9,fontWeight:800}}>₹ {Number(a.amount).toLocaleString("en-IN")}</td><td style={{padding:9,color:"#52627b"}}>{a.note||"—"}</td></tr>)}</tbody>
         </table></div>}
    </div>
    <div style={{marginTop:14,padding:14,border:"1px solid #e8eef7",borderRadius:13}}>
     <div style={{fontSize:14,fontWeight:800,color:"#17345f",marginBottom:6}}>Payment Notes</div>
     <div style={{fontSize:13,color:"#52627a",whiteSpace:"pre-wrap"}}>{paymentNotes?.trim()||"No payment note added."}</div>
    </div>
-   <div style={{marginTop:12,padding:16,borderRadius:13,background:finalBalance<0?"#fff2f2":"#eef8f3"}}><span style={{color:"#71809a"}}>Final Balance</span><b style={{marginLeft:10,color:finalBalance<0?"#c93636":"#168f67",fontSize:22}}>₹ {finalBalance.toLocaleString("en-IN")}</b>{finalBalance<0&&<span style={{marginLeft:8,color:"#c93636",fontSize:12}}>Due / carry forward</span>}</div>
+   <div style={{marginTop:12,padding:16,borderRadius:13,background:finalBalance<0?"#fff2f2":"#eef8f3"}}><span style={{color:"#71809a"}}>Final Balance</span><b style={{marginLeft:10,color:finalBalance<0?"#c93636":"#168f67",fontSize:22}}>{finalBalance<0?"-":"+"} ₹ {Math.abs(finalBalance).toLocaleString("en-IN")}</b><span style={{marginLeft:8,color:finalBalance<0?"#c93636":"#168f67",fontSize:12}}>{finalBalance<0?"Due / carry forward":"Credit / carry forward"}</span></div>
    <div style={{display:"flex",gap:18,marginTop:14,fontSize:13,color:"#52627b"}}><span>Present: <b>{present}</b></span><span>Absent: <b>{absent}</b></span><span>Half Day: <b>{half}</b></span><span>OT: <b>{ot.toFixed(2)} hr</b></span></div>
    <h3 style={{margin:"22px 0 10px",color:"#17345f"}}>Daily Attendance & OT</h3>
    <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",minWidth:700}}><thead><tr style={{textAlign:"left",fontSize:12,color:"#71809a",borderBottom:"1px solid #e8eef7"}}>{["Date","In","Out","Status","OT Hours"].map(x=><th key={x} style={{padding:10}}>{x}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={i} style={{borderBottom:"1px solid #eef2f7"}}><td style={{padding:10}}>{r.date}</td><td style={{padding:10}}>{r.inTime||"—"}</td><td style={{padding:10}}>{r.outTime||"—"}</td><td style={{padding:10}}>{r.status}</td><td style={{padding:10}}>{Number(r.overtimeHours||0).toFixed(2)} hr</td></tr>)}</tbody></table></div>
-   <div style={{marginTop:16,padding:13,borderRadius:10,background:"#f7fafc",fontSize:12,color:"#52627b"}}>Next month ka Opening Balance = is month ka Final Balance. Negative balance automatically carry forward hoga. Staff has no OT and no Sunday 2×; Labour Sunday work is 2× and Sunday extra hours are paid at 2× OT rate.</div>
+   <div style={{marginTop:16,padding:13,borderRadius:10,background:"#f7fafc",fontSize:12,color:"#52627b"}}>Next month ka Opening Balance = is month ka Final Balance. Positive credit aur negative due, dono automatically carry forward honge. Staff has no OT and no Sunday 2×; Labour Sunday work is 2× and Sunday extra hours are paid at 2× OT rate.</div>
   </div>
  </div>
 }
