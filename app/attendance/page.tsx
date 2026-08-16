@@ -24,14 +24,24 @@ type RecordItem = {
 };
 
 // Standard paid shift is 8 hours. Overtime is calculated automatically from In/Out time.
-function calculateOvertimeHours(inTime: string, outTime: string, status: RecordItem["status"]) {
-  if (status === "Absent" || !inTime || !outTime) return 0;
+function calculateOvertimeHours(
+  inTime: string,
+  outTime: string,
+  status: RecordItem["status"],
+  personType: "labour" | "staff"
+) {
+  // Staff: official working time starts at 09:00 AM and staff never gets OT.
+  if (personType === "staff" || status === "Absent" || !inTime || !outTime) return 0;
   const [ih, im] = inTime.split(":").map(Number);
   const [oh, om] = outTime.split(":").map(Number);
   if (![ih, im, oh, om].every(Number.isFinite)) return 0;
-  let minutes = (oh * 60 + om) - (ih * 60 + im);
-  if (minutes < 0) minutes += 24 * 60;
-  const extra = Math.max(0, minutes - 8 * 60);
+
+  let start = ih * 60 + im;
+  const end = oh * 60 + om;
+  if (end < start) return 0;
+
+  const workedMinutes = end - start;
+  const extra = Math.max(0, workedMinutes - 8 * 60);
   return Math.round((extra / 60) * 2) / 2;
 }
 
@@ -108,13 +118,13 @@ export default function Attendance() {
 
   const updateLocal = (p: Person, patch: Partial<RecordItem>) => {
     const key = `${p.type}_${p.id}`;
-    setRecords(prev => { const next = { ...getRecord(p), ...patch } as RecordItem; next.overtimeHours = calculateOvertimeHours(next.inTime, next.outTime, next.status); return { ...prev, [key]: next }; });
+    setRecords(prev => { const next = { ...getRecord(p), ...patch } as RecordItem; next.overtimeHours = calculateOvertimeHours(next.inTime, next.outTime, next.status, p.type); return { ...prev, [key]: next }; });
   };
 
   async function save(p: Person) {
     const key = `${p.type}_${p.id}`;
     const r = getRecord(p);
-    const calculatedOT = calculateOvertimeHours(r.inTime, r.outTime, r.status);
+    const calculatedOT = calculateOvertimeHours(r.inTime, r.outTime, r.status, p.type);
     setSaving(key);
     setError("");
     try {
@@ -192,7 +202,7 @@ export default function Attendance() {
           </div>
 
           <div className="card" style={{ padding: 20, overflowX: "auto" }}>
-            <h2 style={{ margin: "0 0 8px", color: "#17345f", fontSize: 18 }}>Daily Attendance</h2>{isSunday && <div style={{ marginBottom: 12, padding: "10px 12px", borderRadius: 10, background: "#fff7e6", border: "1px solid #f5d48a", color: "#8a5a00", fontWeight: 700, fontSize: 12 }}>Sunday: Labour working today receives 2× daily pay. Overtime is calculated automatically when Out Time is more than 8 hours after In Time.</div>}
+            <h2 style={{ margin: "0 0 8px", color: "#17345f", fontSize: 18 }}>Daily Attendance</h2>{isSunday && <div style={{ marginBottom: 12, padding: "10px 12px", borderRadius: 10, background: "#fff7e6", border: "1px solid #f5d48a", color: "#8a5a00", fontWeight: 700, fontSize: 12 }}>Sunday: Labour working today receives 2× daily pay. Sunday extra hours are OT at 2× OT rate. Staff gets no Sunday 2× and no OT. Staff time before 09:00 AM does not create extra time.</div>}
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
               <thead>
                 <tr style={{ textAlign: "left", color: "#71809a", fontSize: 12, borderBottom: "1px solid #e8eef7" }}>
@@ -217,7 +227,7 @@ export default function Attendance() {
                       </td>
                       <td style={{ padding: 12 }}><input className="input" type="time" value={r.inTime} disabled={r.status === "Absent"} onChange={e => updateLocal(p, { inTime: e.target.value })} /></td>
                       <td style={{ padding: 12 }}><input className="input" type="time" value={r.outTime} disabled={r.status === "Absent"} onChange={e => updateLocal(p, { outTime: e.target.value })} /></td>
-                      <td style={{ padding: 12, fontWeight: 800, color: "#082b68" }}>{calculateOvertimeHours(r.inTime, r.outTime, r.status) > 0 ? `${calculateOvertimeHours(r.inTime, r.outTime, r.status)} hr` : "—"}</td>
+                      <td style={{ padding: 12, fontWeight: 800, color: "#082b68" }}>{calculateOvertimeHours(r.inTime, r.outTime, r.status, p.type) > 0 ? `${calculateOvertimeHours(r.inTime, r.outTime, r.status, p.type)} hr` : "—"}</td>
                       <td style={{ padding: 12 }}>
                         <button className="btn btn-primary" disabled={saving === key} onClick={() => save(p)} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                           {saving === key ? "Saving…" : <><Check size={15} /> Save</>}
