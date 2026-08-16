@@ -119,6 +119,16 @@ function Detail({person,month,attendance,advances,onClose}:{person:Person;month:
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:10,marginTop:18}}>
         {[["Monthly Salary",`₹ ${person.monthlySalary.toLocaleString("en-IN")}`],["Present",present],["Absent",absent],["Half Day",half]].map(([a,b])=><div key={String(a)} style={{padding:14,border:"1px solid #e8eef7",borderRadius:12}}><div style={{fontSize:11,color:"#71809a"}}>{a}</div><b style={{fontSize:19,color:"#17345f"}}>{b}</b></div>)}
       </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:12,marginTop:12}}>
+        <div style={{padding:14,borderRadius:12,background:"#f7fafc"}}><b>Previous Balance</b><div style={{fontSize:24,color:"#082b68",fontWeight:800}}>₹ 0</div><small style={{color:"#71809a"}}>Carries from previous month</small></div>
+        <div style={{padding:14,borderRadius:12,background:"#eef7ff"}}><b>Current Month</b><div style={{fontSize:24,color:"#082b68",fontWeight:800}}>₹ {person.monthlySalary.toLocaleString("en-IN")}</div><small style={{color:"#71809a"}}>Before deductions/advance</small></div>
+        <div style={{padding:14,borderRadius:12,background:"#eaf9f2"}}><b>Running Balance</b><div style={{fontSize:24,color:"#168f67",fontWeight:800}}>₹ {person.monthlySalary.toLocaleString("en-IN")}</div><small style={{color:"#71809a"}}>Final balance updates after salary save</small></div>
+      </div>
+
+      <div style={{marginTop:14,padding:15,borderRadius:12,background:"#fff8e8",border:"1px solid #f3dfad",fontSize:13,color:"#6b5a2b"}}>
+        <b>Carry Forward:</b> Month-end balance will become the next month's opening balance. If the balance is negative, the amount due will continue into the next month until cleared.
+      </div>
+
       <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:12,marginTop:12}}>
         <div style={{padding:14,borderRadius:12,background:"#eef7ff"}}><b>Total OT Hours</b><div style={{fontSize:24,color:"#082b68",fontWeight:800}}>{ot.toFixed(2)} hr</div></div>
         <div style={{padding:14,borderRadius:12,background:"#eaf9f2"}}><b>Advance This Month</b><div style={{fontSize:24,color:"#168f67",fontWeight:800}}>₹ {advanceTotal.toLocaleString("en-IN")}</div></div>

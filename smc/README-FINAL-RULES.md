@@ -1,0 +1,1 @@
+SMC V3 final business-rule checkpoint. See SMC-V3-FINAL-SALARY-RULES.md.
