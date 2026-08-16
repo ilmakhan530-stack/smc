@@ -3,7 +3,7 @@ import React from "react";
 
 export type DetailRow={date:string;inTime?:string;outTime?:string;status:string;overtimeHours?:number;};
 export type AdvanceRow={date:string;amount:number;note?:string;};
-export default function SalaryEmployeeDetail({open,onClose,name,type,month,monthlySalary,openingBalance,earnedSalary,sundayPay,overtimePay,advanceTotal,advanceHistory,deduction,paymentStatus,finalBalance,rows}:{open:boolean;onClose:()=>void;name:string;type:string;month:string;monthlySalary:number;openingBalance:number;earnedSalary:number;sundayPay:number;overtimePay:number;advanceTotal:number;advanceHistory:AdvanceRow[];deduction:number;paymentStatus:"Paid"|"Unpaid";paymentNotes?:string;finalBalance:number;rows:DetailRow[]}){
+export default function SalaryEmployeeDetail({open,onClose,name,type,month,monthlySalary,openingBalance,earnedSalary,sundayPay,overtimePay,advanceTotal,advanceHistory,deduction,paymentStatus,paymentNotes,finalBalance,rows}:{open:boolean;onClose:()=>void;name:string;type:string;month:string;monthlySalary:number;openingBalance:number;earnedSalary:number;sundayPay:number;overtimePay:number;advanceTotal:number;advanceHistory:AdvanceRow[];deduction:number;paymentStatus:"Paid"|"Unpaid";paymentNotes?:string;finalBalance:number;rows:DetailRow[]}){
  if(!open)return null;
  const present=rows.filter(r=>r.status==="Present").length, absent=rows.filter(r=>r.status==="Absent").length, half=rows.filter(r=>r.status==="Half Day").length;
  const ot=rows.reduce((n,r)=>n+Number(r.overtimeHours||0),0);
