@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import AuthGuard from "@/components/AuthGuard";
-import { addDoc, collection, doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import { addDoc, collection, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { FileText, Plus, Printer, Save, X } from "lucide-react";
 
@@ -34,7 +34,7 @@ function numberToWords(n:number){
 }
 
 const today=()=>new Date().toISOString().slice(0,10);
-const invoiceNo=()=>`SMC-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+const invoiceNo=()=>`${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
 
 export default function BillPage(){
   const [sellers,setSellers]=useState<Party[]>([]);
@@ -56,10 +56,6 @@ export default function BillPage(){
   const [dispatchedThrough,setDispatchedThrough]=useState("");
   const [destination,setDestination]=useState("");
   const [terms,setTerms]=useState("");
-  const [remarks,setRemarks]=useState("");
-  const [savedDispatchDocs,setSavedDispatchDocs]=useState<string[]>([]);
-  const [savedDispatchedThrough,setSavedDispatchedThrough]=useState<string[]>([]);
-  const [savedDestinations,setSavedDestinations]=useState<string[]>([]);
   const [taxMode,setTaxMode]=useState<TaxMode>("igst");
   const [taxRate,setTaxRate]=useState("18");
   const [saving,setSaving]=useState(false);
@@ -70,30 +66,8 @@ export default function BillPage(){
     const u1=onSnapshot(collection(db,"billSellers"),s=>setSellers(s.docs.map(d=>({id:d.id,...d.data()} as Party))));
     const u2=onSnapshot(collection(db,"billBuyers"),s=>setBuyers(s.docs.map(d=>({id:d.id,...d.data()} as Party))));
     const u3=onSnapshot(collection(db,"billDescriptions"),s=>setDescriptions(s.docs.map(d=>({id:d.id,...d.data()} as Description))));
-    const u4=onSnapshot(collection(db,"billDispatchDocs"),s=>setSavedDispatchDocs(s.docs.map(d=>String((d.data() as any).value||"")).filter(Boolean)));
-    const u5=onSnapshot(collection(db,"billDispatchedThrough"),s=>setSavedDispatchedThrough(s.docs.map(d=>String((d.data() as any).value||"")).filter(Boolean)));
-    const u6=onSnapshot(collection(db,"billDestinations"),s=>setSavedDestinations(s.docs.map(d=>String((d.data() as any).value||"")).filter(Boolean)));
-    getDoc(doc(db,"billDefaults","global")).then(s=>{
-      if(!s.exists()) return;
-      const d=s.data() as any;
-      setDeliveryNote(d.deliveryNote||"");
-      setBuyersOrder(d.buyersOrder||"");
-      setDispatchDoc(d.dispatchDoc||"");
-      setDispatchedThrough(d.dispatchedThrough||"");
-      setDestination(d.destination||"");
-      setTerms(d.terms||"");
-    }).catch(()=>{});
-    return ()=>{u1();u2();u3();u4();u5();u6()};
+    return ()=>{u1();u2();u3()};
   },[]);
-
-  async function saveBillDefault(field:string,value:string){
-    try{ await setDoc(doc(db,"billDefaults","global"),{[field]:value,updatedAt:serverTimestamp()},{merge:true}); }catch(e){}
-  }
-  async function saveReusableValue(collectionName:string,value:string){
-    const v=value.trim();
-    if(!v) return;
-    try{ await addDoc(collection(db,collectionName),{value:v,createdAt:serverTimestamp()}); }catch(e){}
-  }
 
   useEffect(()=>{ const x=sellers.find(v=>v.id===sellerId); if(x) setSeller(x); },[sellerId,sellers]);
   useEffect(()=>{ const x=buyers.find(v=>v.id===buyerId); if(x) setBuyer(x); },[buyerId,buyers]);
@@ -140,9 +114,8 @@ export default function BillPage(){
     if(!valid.length){setError("Kam se kam 1 valid item dalo.");return;}
     setSaving(true);
     try{
-      await setDoc(doc(db,"billDefaults","global"),{deliveryNote,buyersOrder,dispatchDoc,dispatchedThrough,destination,terms,updatedAt:serverTimestamp()},{merge:true});
       await addDoc(collection(db,"bills"),{
-        invoiceNo:invoice,date,seller,buyer,items:valid,deliveryNote,buyersOrder,dispatchDoc,dispatchedThrough,destination,terms,remarks,
+        invoiceNo:invoice,date,seller,buyer,items:valid,deliveryNote,buyersOrder,dispatchDoc,dispatchedThrough,destination,terms,
         taxMode,taxRate:rate,subtotal,igst,cgst,sgst,total:grandTotal,amountWords:numberToWords(grandTotal),createdAt:serverTimestamp()
       });
       setMessage("Bill saved successfully. Salary aur Stock par koi effect nahi hua.");
@@ -156,7 +129,6 @@ export default function BillPage(){
       <div className="no-print"><Sidebar/></div>
       <main style={{flex:1,padding:"28px",minWidth:0}}>
         <div className="no-print" style={{maxWidth:1180,margin:"0 auto"}}>
-          <div style={{color:"#168f67",fontWeight:800,fontSize:12,letterSpacing:2}}>SMC MANAGEMENT</div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:15,flexWrap:"wrap"}}>
             <div><h1 style={{margin:"6px 0",color:"#082b68",fontSize:30}}>Bill / Tax Invoice</h1><p style={{margin:0,color:"#6d7d96"}}>Separate billing module — Salary aur Stock se independent.</p></div>
             <div style={{display:"flex",gap:8}}><button className="btn btn-primary" onClick={saveBill} disabled={saving}><Save size={16}/> Save Bill</button><button className="btn" onClick={printBill}><Printer size={16}/> Print / PDF</button></div>
@@ -184,33 +156,25 @@ export default function BillPage(){
                 <button className="btn btn-primary" style={{marginTop:9}} onClick={()=>saveParty("seller")}><Plus size={15}/> Save Seller</button>
               </div>
               <div style={{padding:14,background:"#f7faff",borderRadius:12}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,marginBottom:10}}>
-                  <b>Buyer</b>
-                  <select className="input" style={{maxWidth:260}} value={buyerId} onChange={e=>setBuyerId(e.target.value)}>
-                    <option value="">Select saved buyer</option>
-                    {buyers.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}
-                  </select>
-                </div>
                 <b>Save new Buyer</b>
                 <div className="party-grid">
                   <input className="input" placeholder="Name" value={newBuyer.name} onChange={e=>setNewBuyer({...newBuyer,name:e.target.value})}/>
                   <input className="input" placeholder="Mobile" value={newBuyer.mobile} onChange={e=>setNewBuyer({...newBuyer,mobile:e.target.value})}/>
                   <input className="input" placeholder="Address" value={newBuyer.address} onChange={e=>setNewBuyer({...newBuyer,address:e.target.value})}/>
                   <input className="input" placeholder="GSTIN/UIN" value={newBuyer.gstin} onChange={e=>setNewBuyer({...newBuyer,gstin:e.target.value})}/>
-                  <input className="input" placeholder="State" value={newBuyer.state} onChange={e=>setNewBuyer({...newBuyer,state:e.target.value})}/>
+                  <input className="input" placeholder="State" value={newBuyer.state} onChange={e=>setNewBuyer({...newBuyer,stateCode:e.target.value})}/>
                   <input className="input" placeholder="State Code" value={newBuyer.stateCode} onChange={e=>setNewBuyer({...newBuyer,stateCode:e.target.value})}/>
                 </div>
                 <button className="btn btn-primary" style={{marginTop:9}} onClick={()=>saveParty("buyer")}><Plus size={15}/> Save Buyer</button>
               </div>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginTop:14}}>
-              <input className="input" placeholder="Delivery Note" value={deliveryNote} onChange={e=>setDeliveryNote(e.target.value)} onBlur={e=>saveBillDefault("deliveryNote",e.target.value)}/>
-              <input className="input" placeholder="Buyer's Order No." value={buyersOrder} onChange={e=>setBuyersOrder(e.target.value)} onBlur={e=>saveBillDefault("buyersOrder",e.target.value)}/>
-              <div className="saved-field"><select className="input" value={savedDispatchDocs.includes(dispatchDoc)?dispatchDoc:"__custom__"} onChange={e=>{if(e.target.value!=="__custom__") setDispatchDoc(e.target.value)}}><option value="__custom__">New / custom Dispatch Doc No.</option>{savedDispatchDocs.map(v=><option key={v} value={v}>{v}</option>)}</select><input className="input" placeholder="Dispatch Doc No." value={dispatchDoc} onChange={e=>setDispatchDoc(e.target.value)}/><button className="btn save-small" onClick={async()=>{await saveReusableValue("billDispatchDocs",dispatchDoc);await saveBillDefault("dispatchDoc",dispatchDoc)}}>Save</button></div>
-              <div className="saved-field"><select className="input" value={savedDispatchedThrough.includes(dispatchedThrough)?dispatchedThrough:"__custom__"} onChange={e=>{if(e.target.value!=="__custom__") setDispatchedThrough(e.target.value)}}><option value="__custom__">New / custom Dispatched Through</option>{savedDispatchedThrough.map(v=><option key={v} value={v}>{v}</option>)}</select><input className="input" placeholder="Dispatched Through" value={dispatchedThrough} onChange={e=>setDispatchedThrough(e.target.value)}/><button className="btn save-small" onClick={async()=>{await saveReusableValue("billDispatchedThrough",dispatchedThrough);await saveBillDefault("dispatchedThrough",dispatchedThrough)}}>Save</button></div>
-              <div className="saved-field"><select className="input" value={savedDestinations.includes(destination)?destination:"__custom__"} onChange={e=>{if(e.target.value!=="__custom__") setDestination(e.target.value)}}><option value="__custom__">New / custom Destination</option>{savedDestinations.map(v=><option key={v} value={v}>{v}</option>)}</select><input className="input" placeholder="Destination" value={destination} onChange={e=>setDestination(e.target.value)}/><button className="btn save-small" onClick={async()=>{await saveReusableValue("billDestinations",destination);await saveBillDefault("destination",destination)}}>Save</button></div>
-              <input className="input" placeholder="Terms of Delivery" value={terms} onChange={e=>setTerms(e.target.value)} onBlur={e=>saveBillDefault("terms",e.target.value)} style={{gridColumn:"span 3"}}/><input className="input" placeholder="Remarks" value={remarks} onChange={e=>setRemarks(e.target.value)} style={{gridColumn:"span 4"}}/>
-              <div style={{gridColumn:"span 4",fontSize:11,color:"#168f67"}}>In teen fields mein saved values dropdown mein dikhenge. Aap purani value select kar sakte ho ya <b>New / custom</b> choose karke nayi value likh kar <b>Save</b> kar sakte ho.</div>
+              <input className="input" placeholder="Delivery Note" value={deliveryNote} onChange={e=>setDeliveryNote(e.target.value)}/>
+              <input className="input" placeholder="Buyer's Order No." value={buyersOrder} onChange={e=>setBuyersOrder(e.target.value)}/>
+              <input className="input" placeholder="Dispatch Doc No." value={dispatchDoc} onChange={e=>setDispatchDoc(e.target.value)}/>
+              <input className="input" placeholder="Dispatched Through" value={dispatchedThrough} onChange={e=>setDispatchedThrough(e.target.value)}/>
+              <input className="input" placeholder="Destination" value={destination} onChange={e=>setDestination(e.target.value)}/>
+              <input className="input" placeholder="Terms of Delivery" value={terms} onChange={e=>setTerms(e.target.value)} style={{gridColumn:"span 3"}}/>
             </div>
           </section>
 
@@ -227,24 +191,24 @@ export default function BillPage(){
         <div className="invoice-wrap">
 
           <div className="invoice">
-            <div className="invoice-top"><div><div className="invoice-title">Tax Invoice</div><div className="smc-invoice-brand">SMC OFFICE MANAGEMENT SYSTEM</div><div className="copy-label">(ORIGINAL FOR RECIPIENT)</div></div><div style={{textAlign:"right"}}><b>Invoice No.: {invoice}</b><br/>Date: {date}<br/></div></div>
+            <div className="invoice-top"><div className="invoice-title">Tax Invoice</div><div style={{textAlign:"right"}}><div className="copy-label">(ORIGINAL FOR RECIPIENT)</div><b>Invoice No.: {invoice}</b><br/>Date: {date}<br/></div></div>
             <div className="invoice-meta"><div><b>Seller (Bill From)</b><div className="party-name">{seller.name||"—"}</div><div>{seller.address||"—"}</div><div>GSTIN/UIN: {seller.gstin||"—"}</div><div>State: {seller.state||"—"} &nbsp; Code: {seller.stateCode||"—"}</div></div><div><b>Buyer (Bill To)</b><div className="party-name">{buyer.name||"—"}</div><div>{buyer.address||"—"}</div><div>GSTIN/UIN: {buyer.gstin||"—"}</div><div>State: {buyer.state||"—"} &nbsp; Code: {buyer.stateCode||"—"}</div></div><div><div>Delivery Note: {deliveryNote||"—"}</div><div>Buyer's Order No.: {buyersOrder||"—"}</div><div>Dispatch Doc No.: {dispatchDoc||"—"}</div><div>Dispatched Through: {dispatchedThrough||"—"}</div><div>Destination: {destination||"—"}</div></div></div>
             <table className="invoice-table"><thead><tr><th>S.No.</th><th>Description of Goods</th><th>HSN/SAC</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead><tbody>{items.filter(x=>x.description.trim()).map((x,i)=><tr key={i}><td>{i+1}</td><td><b>{x.description}</b><div className="tax-inline">{taxMode==="igst"?`IGST @ ${rate}%`:taxMode==="cgst_sgst"?`CGST @ ${rate/2}% + SGST @ ${rate/2}%`:""}</div></td><td>{x.hsn}</td><td>{x.quantity} {x.unit}</td><td>{money(x.rate)}</td><td>{money(x.quantity*x.rate)}</td></tr>)}<tr><td colSpan={5} style={{textAlign:"right"}}><b>Taxable Value</b></td><td><b>{money(subtotal)}</b></td></tr>{igst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>IGST @ {rate}%</td><td>{money(igst)}</td></tr>}{cgst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>CGST @ {rate/2}%</td><td>{money(cgst)}</td></tr>}{sgst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>SGST @ {rate/2}%</td><td>{money(sgst)}</td></tr>}<tr><td colSpan={5} style={{textAlign:"right"}}><b>Grand Total</b></td><td><b>{money(grandTotal)}</b></td></tr></tbody></table>
             <div className="words"><b>Amount Chargeable (in words)</b><br/>{numberToWords(grandTotal)}</div>
-            <div className="tax-summary"><div><b>Tax Summary</b></div><table><thead><tr><th>Taxable Value</th><th>Tax Rate</th><th>IGST</th><th>CGST</th><th>SGST</th><th>Total Tax</th></tr></thead><tbody><tr><td>{money(subtotal)}</td><td>{taxMode==="none"?0:rate}%</td><td>{money(igst)}</td><td>{money(cgst)}</td><td>{money(sgst)}</td><td>{money(tax)}</td></tr></tbody></table></div>
-            <div className="invoice-bottom"><div><b>Tax Amount (in words)</b><br/>{numberToWords(tax)}<br/><br/><b>Remarks:</b><br/>{remarks||"—"}<br/><br/><b>Declaration</b><br/>We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</div><div className="signature"><b>for {seller.name||"Seller"}</b><div>Authorised Signatory</div></div></div>
+            <div className="tax-summary"><div><b>Tax Summary</b></div><table><thead><tr><th>Taxable Value</th><th>Tax Rate</th>{taxMode==="igst"&&<th>IGST</th>}{taxMode==="cgst_sgst"&&<><th>CGST</th><th>SGST</th></>}{taxMode!=="none"&&<th>Total Tax</th>}</tr></thead><tbody><tr><td>{money(subtotal)}</td><td>{taxMode==="none"?0:rate}%</td>{taxMode==="igst"&&<td>{money(igst)}</td>}{taxMode==="cgst_sgst"&&<><td>{money(cgst)}</td><td>{money(sgst)}</td></>}{taxMode!=="none"&&<td>{money(tax)}</td>}</tr></tbody></table></div>
+            <div className="invoice-bottom"><div><b>Tax Amount (in words)</b><br/>{numberToWords(tax)}<br/><br/><b>Remarks:</b><br/>{terms||"—"}<br/><br/><b>Declaration</b><br/>We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</div><div className="signature"><b>for {seller.name||"Seller"}</b><div>Authorised Signatory</div></div></div>
             <div className="generated">This is a Computer Generated Invoice</div>
           </div>
 
         <div className="copy-break"></div>
 
           <div className="invoice">
-            <div className="invoice-top"><div><div className="invoice-title">Tax Invoice</div><div className="smc-invoice-brand">SMC OFFICE MANAGEMENT SYSTEM</div><div className="copy-label">(DUPLICATE FOR TRANSPORTER)</div></div><div style={{textAlign:"right"}}><b>Invoice No.: {invoice}</b><br/>Date: {date}<br/></div></div>
+            <div className="invoice-top"><div className="invoice-title">Tax Invoice</div><div style={{textAlign:"right"}}><div className="copy-label">(DUPLICATE FOR TRANSPORTER)</div><b>Invoice No.: {invoice}</b><br/>Date: {date}<br/></div></div>
             <div className="invoice-meta"><div><b>Seller (Bill From)</b><div className="party-name">{seller.name||"—"}</div><div>{seller.address||"—"}</div><div>GSTIN/UIN: {seller.gstin||"—"}</div><div>State: {seller.state||"—"} &nbsp; Code: {seller.stateCode||"—"}</div></div><div><b>Buyer (Bill To)</b><div className="party-name">{buyer.name||"—"}</div><div>{buyer.address||"—"}</div><div>GSTIN/UIN: {buyer.gstin||"—"}</div><div>State: {buyer.state||"—"} &nbsp; Code: {buyer.stateCode||"—"}</div></div><div><div>Delivery Note: {deliveryNote||"—"}</div><div>Buyer's Order No.: {buyersOrder||"—"}</div><div>Dispatch Doc No.: {dispatchDoc||"—"}</div><div>Dispatched Through: {dispatchedThrough||"—"}</div><div>Destination: {destination||"—"}</div></div></div>
             <table className="invoice-table"><thead><tr><th>S.No.</th><th>Description of Goods</th><th>HSN/SAC</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead><tbody>{items.filter(x=>x.description.trim()).map((x,i)=><tr key={i}><td>{i+1}</td><td><b>{x.description}</b><div className="tax-inline">{taxMode==="igst"?`IGST @ ${rate}%`:taxMode==="cgst_sgst"?`CGST @ ${rate/2}% + SGST @ ${rate/2}%`:""}</div></td><td>{x.hsn}</td><td>{x.quantity} {x.unit}</td><td>{money(x.rate)}</td><td>{money(x.quantity*x.rate)}</td></tr>)}<tr><td colSpan={5} style={{textAlign:"right"}}><b>Taxable Value</b></td><td><b>{money(subtotal)}</b></td></tr>{igst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>IGST @ {rate}%</td><td>{money(igst)}</td></tr>}{cgst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>CGST @ {rate/2}%</td><td>{money(cgst)}</td></tr>}{sgst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>SGST @ {rate/2}%</td><td>{money(sgst)}</td></tr>}<tr><td colSpan={5} style={{textAlign:"right"}}><b>Grand Total</b></td><td><b>{money(grandTotal)}</b></td></tr></tbody></table>
             <div className="words"><b>Amount Chargeable (in words)</b><br/>{numberToWords(grandTotal)}</div>
-            <div className="tax-summary"><div><b>Tax Summary</b></div><table><thead><tr><th>Taxable Value</th><th>Tax Rate</th><th>IGST</th><th>CGST</th><th>SGST</th><th>Total Tax</th></tr></thead><tbody><tr><td>{money(subtotal)}</td><td>{taxMode==="none"?0:rate}%</td><td>{money(igst)}</td><td>{money(cgst)}</td><td>{money(sgst)}</td><td>{money(tax)}</td></tr></tbody></table></div>
-            <div className="invoice-bottom"><div><b>Tax Amount (in words)</b><br/>{numberToWords(tax)}<br/><br/><b>Remarks:</b><br/>{remarks||"—"}<br/><br/><b>Declaration</b><br/>We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</div><div className="signature"><b>for {seller.name||"Seller"}</b><div>Authorised Signatory</div></div></div>
+            <div className="tax-summary"><div><b>Tax Summary</b></div><table><thead><tr><th>Taxable Value</th><th>Tax Rate</th>{taxMode==="igst"&&<th>IGST</th>}{taxMode==="cgst_sgst"&&<><th>CGST</th><th>SGST</th></>}{taxMode!=="none"&&<th>Total Tax</th>}</tr></thead><tbody><tr><td>{money(subtotal)}</td><td>{taxMode==="none"?0:rate}%</td>{taxMode==="igst"&&<td>{money(igst)}</td>}{taxMode==="cgst_sgst"&&<><td>{money(cgst)}</td><td>{money(sgst)}</td></>}{taxMode!=="none"&&<td>{money(tax)}</td>}</tr></tbody></table></div>
+            <div className="invoice-bottom"><div><b>Tax Amount (in words)</b><br/>{numberToWords(tax)}<br/><br/><b>Remarks:</b><br/>{terms||"—"}<br/><br/><b>Declaration</b><br/>We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</div><div className="signature"><b>for {seller.name||"Seller"}</b><div>Authorised Signatory</div></div></div>
             <div className="generated">This is a Computer Generated Invoice</div>
           </div>
 
@@ -252,11 +216,10 @@ export default function BillPage(){
       </main>
       <style jsx global>{`
         label{display:block;font-size:12px;font-weight:700;color:#71809a;margin-bottom:5px}
-        .saved-field{display:flex;gap:6px;align-items:center}.saved-field .input{min-width:0;flex:1}.save-small{padding:8px 11px!important;font-size:12px!important;white-space:nowrap}
         .party-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
         .editor-table{width:100%;border-collapse:collapse;min-width:850px}.editor-table th,.editor-table td{padding:8px;border-bottom:1px solid #e7edf5;text-align:left}.editor-table th{font-size:12px;color:#64748b}.icon-btn{border:0;background:transparent;cursor:pointer}
-        .invoice-wrap{width:min(100%,210mm);max-width:210mm;margin:30px auto}.invoice{background:#fff;color:#111;border:1px solid #222;padding:7mm;min-height:281mm;box-sizing:border-box;font-family:Arial,sans-serif;font-size:10px;line-height:1.35;box-shadow:0 5px 20px #0001}.invoice-top{display:flex;justify-content:space-between;border-bottom:1px solid #222;padding-bottom:6px;min-height:23mm}.invoice-title{text-align:center;font-size:18px;font-weight:800}.smc-invoice-brand{font-size:9px;font-weight:700;letter-spacing:1.2px;margin-top:2px}.small{font-size:8px;letter-spacing:1px}.invoice-meta{display:grid;grid-template-columns:1.3fr 1.3fr 1fr;border-bottom:1px solid #222}.invoice-meta>div{padding:8px;border-right:1px solid #222;min-height:43mm;box-sizing:border-box}.invoice-meta>div:last-child{border-right:0}.party-name{font-size:12px;font-weight:800;margin:2px 0}.invoice-table{width:100%;border-collapse:collapse}.invoice-table th,.invoice-table td{border:1px solid #222;padding:6px;vertical-align:top}.invoice-table th{font-size:9px;height:8mm}.invoice-table tbody tr:first-child td{height:128mm}.invoice-table td:nth-child(1){width:35px;text-align:center}.invoice-table td:nth-child(3){width:70px}.invoice-table td:nth-child(4){width:85px}.invoice-table td:nth-child(5),.invoice-table td:nth-child(6){width:85px;text-align:right}.tax-inline{text-align:center;font-weight:700;margin-top:24px}.words{border:1px solid #222;border-top:0;padding:8px;min-height:15mm;box-sizing:border-box}.tax-summary{border:1px solid #222;border-top:0;padding:7px;min-height:20mm;box-sizing:border-box}.tax-summary table{width:100%;border-collapse:collapse;margin-top:5px}.tax-summary th,.tax-summary td{border:1px solid #222;padding:4px;text-align:right}.invoice-bottom{display:grid;grid-template-columns:1.6fr 1fr;border:1px solid #222;border-top:0;min-height:48mm}.invoice-bottom>div{padding:8px}.signature{border-left:1px solid #222;text-align:right;padding-top:28mm!important}.generated{text-align:center;padding-top:5px;font-size:8px}.copy-label{text-align:right;font-size:8px;font-weight:700;margin-bottom:5px}.copy-break{display:block;height:14mm}
-        @media print{html,body{background:#fff!important;margin:0!important;padding:0!important}.no-print{display:none!important}.bill-app{display:block!important;min-height:0!important}.bill-app main{padding:0!important}.invoice-wrap{width:210mm!important;max-width:210mm!important;margin:0 auto!important}.invoice{width:210mm!important;min-height:281mm!important;height:281mm!important;margin:0!important;padding:7mm!important;box-shadow:none!important;border:1px solid #222;break-inside:avoid;page-break-after:auto}.invoice-table{page-break-inside:auto}.invoice-table tr{page-break-inside:avoid}.invoice-bottom{page-break-inside:avoid}.copy-break{page-break-before:always;height:0!important}@page{size:A4 portrait;margin:8mm}}
+        .invoice-wrap{width:min(100%,210mm);max-width:210mm;margin:30px auto}.invoice{background:#fff;color:#111;border:1px solid #222;padding:9mm;min-height:282mm;box-sizing:border-box;font-family:Arial,sans-serif;font-size:10px;line-height:1.35;box-shadow:0 5px 20px #0001}.invoice-top{display:flex;justify-content:space-between;border-bottom:1px solid #222;padding-bottom:8px}.invoice-title{text-align:center;font-size:18px;font-weight:800}.small{font-size:8px;letter-spacing:1px}.invoice-meta{display:grid;grid-template-columns:1.3fr 1.3fr 1fr;border-bottom:1px solid #222}.invoice-meta>div{padding:8px;border-right:1px solid #222;min-height:95px}.invoice-meta>div:last-child{border-right:0}.party-name{font-size:12px;font-weight:800;margin:5px 0 8px}.invoice-table{width:100%;border-collapse:collapse}.invoice-table th,.invoice-table td{border:1px solid #222;padding:6px;vertical-align:top}.invoice-table th{font-size:9px}.invoice-table td:nth-child(1){width:35px;text-align:center}.invoice-table td:nth-child(3){width:70px}.invoice-table td:nth-child(4){width:85px}.invoice-table td:nth-child(5),.invoice-table td:nth-child(6){width:85px;text-align:right}.tax-inline{text-align:center;font-weight:700;margin-top:24px}.words{border:1px solid #222;border-top:0;padding:8px;min-height:42px}.tax-summary{border:1px solid #222;border-top:0;padding:7px}.tax-summary table{width:100%;border-collapse:collapse;margin-top:5px}.tax-summary th,.tax-summary td{border:1px solid #222;padding:4px;text-align:right}.invoice-bottom{display:grid;grid-template-columns:1.6fr 1fr;border:1px solid #222;border-top:0;min-height:120px}.invoice-bottom>div{padding:8px}.signature{border-left:1px solid #222;text-align:right;padding-top:65px!important}.generated{text-align:center;padding-top:7px;font-size:8px}.copy-label{text-align:right;font-size:8px;font-weight:700;margin-bottom:5px}.copy-break{display:block;height:14mm}
+        @media print{html,body{background:#fff!important;margin:0!important;padding:0!important}.no-print{display:none!important}.bill-app{display:block!important;min-height:0!important}.bill-app main{padding:0!important}.invoice-wrap{width:210mm!important;max-width:210mm!important;margin:0!important;padding:0!important;break-inside:avoid!important}.invoice{width:210mm!important;height:297mm!important;min-height:297mm!important;max-height:297mm!important;margin:0!important;padding:5mm!important;box-sizing:border-box!important;overflow:hidden!important;box-shadow:none!important;border:1px solid #222!important;break-inside:avoid!important;page-break-inside:avoid!important;position:relative!important;font-size:9px!important;line-height:1.25!important}.invoice-top{padding-bottom:5px!important}.invoice-title{font-size:17px!important}.invoice-meta>div{padding:6px!important;min-height:78px!important}.party-name{margin:4px 0 5px!important}.invoice-table th,.invoice-table td{padding:4px!important}.tax-inline{margin-top:14px!important}.words{padding:6px!important;min-height:32px!important}.tax-summary{padding:5px!important}.tax-summary table{margin-top:3px!important}.tax-summary th,.tax-summary td{padding:3px!important}.invoice-bottom{min-height:92px!important}.invoice-bottom>div{padding:6px!important}.signature{padding-top:42px!important}.generated{padding-top:4px!important}.copy-label{margin-bottom:3px!important}.invoice + .invoice{page-break-before:always!important}.invoice:last-child{page-break-after:auto!important}.copy-break{display:none!important;height:0!important}@page{size:A4 portrait;margin:0!important}}
       `}</style>
     </div>
   </AuthGuard>
