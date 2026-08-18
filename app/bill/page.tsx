@@ -57,6 +57,9 @@ export default function BillPage(){
   const [destination,setDestination]=useState("");
   const [terms,setTerms]=useState("");
   const [remarks,setRemarks]=useState("");
+  const [savedDispatchDocs,setSavedDispatchDocs]=useState<string[]>([]);
+  const [savedDispatchedThrough,setSavedDispatchedThrough]=useState<string[]>([]);
+  const [savedDestinations,setSavedDestinations]=useState<string[]>([]);
   const [taxMode,setTaxMode]=useState<TaxMode>("igst");
   const [taxRate,setTaxRate]=useState("18");
   const [saving,setSaving]=useState(false);
@@ -67,6 +70,9 @@ export default function BillPage(){
     const u1=onSnapshot(collection(db,"billSellers"),s=>setSellers(s.docs.map(d=>({id:d.id,...d.data()} as Party))));
     const u2=onSnapshot(collection(db,"billBuyers"),s=>setBuyers(s.docs.map(d=>({id:d.id,...d.data()} as Party))));
     const u3=onSnapshot(collection(db,"billDescriptions"),s=>setDescriptions(s.docs.map(d=>({id:d.id,...d.data()} as Description))));
+    const u4=onSnapshot(collection(db,"billDispatchDocs"),s=>setSavedDispatchDocs(s.docs.map(d=>String((d.data() as any).value||"")).filter(Boolean)));
+    const u5=onSnapshot(collection(db,"billDispatchedThrough"),s=>setSavedDispatchedThrough(s.docs.map(d=>String((d.data() as any).value||"")).filter(Boolean)));
+    const u6=onSnapshot(collection(db,"billDestinations"),s=>setSavedDestinations(s.docs.map(d=>String((d.data() as any).value||"")).filter(Boolean)));
     getDoc(doc(db,"billDefaults","global")).then(s=>{
       if(!s.exists()) return;
       const d=s.data() as any;
@@ -77,11 +83,16 @@ export default function BillPage(){
       setDestination(d.destination||"");
       setTerms(d.terms||"");
     }).catch(()=>{});
-    return ()=>{u1();u2();u3()};
+    return ()=>{u1();u2();u3();u4();u5();u6()};
   },[]);
 
   async function saveBillDefault(field:string,value:string){
     try{ await setDoc(doc(db,"billDefaults","global"),{[field]:value,updatedAt:serverTimestamp()},{merge:true}); }catch(e){}
+  }
+  async function saveReusableValue(collectionName:string,value:string){
+    const v=value.trim();
+    if(!v) return;
+    try{ await addDoc(collection(db,collectionName),{value:v,createdAt:serverTimestamp()}); }catch(e){}
   }
 
   useEffect(()=>{ const x=sellers.find(v=>v.id===sellerId); if(x) setSeller(x); },[sellerId,sellers]);
@@ -195,11 +206,11 @@ export default function BillPage(){
             <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginTop:14}}>
               <input className="input" placeholder="Delivery Note" value={deliveryNote} onChange={e=>setDeliveryNote(e.target.value)} onBlur={e=>saveBillDefault("deliveryNote",e.target.value)}/>
               <input className="input" placeholder="Buyer's Order No." value={buyersOrder} onChange={e=>setBuyersOrder(e.target.value)} onBlur={e=>saveBillDefault("buyersOrder",e.target.value)}/>
-              <input className="input" placeholder="Dispatch Doc No." value={dispatchDoc} onChange={e=>setDispatchDoc(e.target.value)} onBlur={e=>saveBillDefault("dispatchDoc",e.target.value)}/>
-              <input className="input" placeholder="Dispatched Through" value={dispatchedThrough} onChange={e=>setDispatchedThrough(e.target.value)} onBlur={e=>saveBillDefault("dispatchedThrough",e.target.value)}/>
-              <input className="input" placeholder="Destination" value={destination} onChange={e=>setDestination(e.target.value)} onBlur={e=>saveBillDefault("destination",e.target.value)}/>
+              <div className="saved-field"><select className="input" value={savedDispatchDocs.includes(dispatchDoc)?dispatchDoc:"__custom__"} onChange={e=>{if(e.target.value!=="__custom__") setDispatchDoc(e.target.value)}}><option value="__custom__">New / custom Dispatch Doc No.</option>{savedDispatchDocs.map(v=><option key={v} value={v}>{v}</option>)}</select><input className="input" placeholder="Dispatch Doc No." value={dispatchDoc} onChange={e=>setDispatchDoc(e.target.value)}/><button className="btn save-small" onClick={async()=>{await saveReusableValue("billDispatchDocs",dispatchDoc);await saveBillDefault("dispatchDoc",dispatchDoc)}}>Save</button></div>
+              <div className="saved-field"><select className="input" value={savedDispatchedThrough.includes(dispatchedThrough)?dispatchedThrough:"__custom__"} onChange={e=>{if(e.target.value!=="__custom__") setDispatchedThrough(e.target.value)}}><option value="__custom__">New / custom Dispatched Through</option>{savedDispatchedThrough.map(v=><option key={v} value={v}>{v}</option>)}</select><input className="input" placeholder="Dispatched Through" value={dispatchedThrough} onChange={e=>setDispatchedThrough(e.target.value)}/><button className="btn save-small" onClick={async()=>{await saveReusableValue("billDispatchedThrough",dispatchedThrough);await saveBillDefault("dispatchedThrough",dispatchedThrough)}}>Save</button></div>
+              <div className="saved-field"><select className="input" value={savedDestinations.includes(destination)?destination:"__custom__"} onChange={e=>{if(e.target.value!=="__custom__") setDestination(e.target.value)}}><option value="__custom__">New / custom Destination</option>{savedDestinations.map(v=><option key={v} value={v}>{v}</option>)}</select><input className="input" placeholder="Destination" value={destination} onChange={e=>setDestination(e.target.value)}/><button className="btn save-small" onClick={async()=>{await saveReusableValue("billDestinations",destination);await saveBillDefault("destination",destination)}}>Save</button></div>
               <input className="input" placeholder="Terms of Delivery" value={terms} onChange={e=>setTerms(e.target.value)} onBlur={e=>saveBillDefault("terms",e.target.value)} style={{gridColumn:"span 3"}}/><input className="input" placeholder="Remarks" value={remarks} onChange={e=>setRemarks(e.target.value)} style={{gridColumn:"span 4"}}/>
-              <div style={{gridColumn:"span 4",fontSize:11,color:"#168f67"}}>Dispatch Doc No., Dispatched Through, Destination aur Terms ek baar bharne ke baad automatically save hote hain aur next bill mein dobara fill nahi karna padega.</div>
+              <div style={{gridColumn:"span 4",fontSize:11,color:"#168f67"}}>In teen fields mein saved values dropdown mein dikhenge. Aap purani value select kar sakte ho ya <b>New / custom</b> choose karke nayi value likh kar <b>Save</b> kar sakte ho.</div>
             </div>
           </section>
 
@@ -241,6 +252,7 @@ export default function BillPage(){
       </main>
       <style jsx global>{`
         label{display:block;font-size:12px;font-weight:700;color:#71809a;margin-bottom:5px}
+        .saved-field{display:flex;gap:6px;align-items:center}.saved-field .input{min-width:0;flex:1}.save-small{padding:8px 11px!important;font-size:12px!important;white-space:nowrap}
         .party-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
         .editor-table{width:100%;border-collapse:collapse;min-width:850px}.editor-table th,.editor-table td{padding:8px;border-bottom:1px solid #e7edf5;text-align:left}.editor-table th{font-size:12px;color:#64748b}.icon-btn{border:0;background:transparent;cursor:pointer}
         .invoice-wrap{width:min(100%,210mm);max-width:210mm;margin:30px auto}.invoice{background:#fff;color:#111;border:1px solid #222;padding:10mm;min-height:281mm;box-sizing:border-box;font-family:Arial,sans-serif;font-size:10px;line-height:1.35;box-shadow:0 5px 20px #0001}.invoice-top{display:flex;justify-content:space-between;border-bottom:1px solid #222;padding-bottom:8px}.invoice-title{text-align:center;font-size:18px;font-weight:800}.small{font-size:8px;letter-spacing:1px}.invoice-meta{display:grid;grid-template-columns:1.3fr 1.3fr 1fr;border-bottom:1px solid #222}.invoice-meta>div{padding:8px;border-right:1px solid #222;min-height:95px}.invoice-meta>div:last-child{border-right:0}.party-name{font-size:12px;font-weight:800;margin:2px 0}.invoice-table{width:100%;border-collapse:collapse}.invoice-table th,.invoice-table td{border:1px solid #222;padding:6px;vertical-align:top}.invoice-table th{font-size:9px}.invoice-table td:nth-child(1){width:35px;text-align:center}.invoice-table td:nth-child(3){width:70px}.invoice-table td:nth-child(4){width:85px}.invoice-table td:nth-child(5),.invoice-table td:nth-child(6){width:85px;text-align:right}.tax-inline{text-align:center;font-weight:700;margin-top:24px}.words{border:1px solid #222;border-top:0;padding:8px;min-height:42px}.tax-summary{border:1px solid #222;border-top:0;padding:7px}.tax-summary table{width:100%;border-collapse:collapse;margin-top:5px}.tax-summary th,.tax-summary td{border:1px solid #222;padding:4px;text-align:right}.invoice-bottom{display:grid;grid-template-columns:1.6fr 1fr;border:1px solid #222;border-top:0;min-height:120px}.invoice-bottom>div{padding:8px}.signature{border-left:1px solid #222;text-align:right;padding-top:65px!important}.generated{text-align:center;padding-top:7px;font-size:8px}.copy-label{text-align:right;font-size:8px;font-weight:700;margin-bottom:5px}.copy-break{display:block;height:14mm}
