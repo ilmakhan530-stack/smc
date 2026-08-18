@@ -56,6 +56,7 @@ export default function BillPage(){
   const [dispatchedThrough,setDispatchedThrough]=useState("");
   const [destination,setDestination]=useState("");
   const [terms,setTerms]=useState("");
+  const [remarks,setRemarks]=useState("");
   const [taxMode,setTaxMode]=useState<TaxMode>("igst");
   const [taxRate,setTaxRate]=useState("18");
   const [saving,setSaving]=useState(false);
@@ -115,7 +116,7 @@ export default function BillPage(){
     setSaving(true);
     try{
       await addDoc(collection(db,"bills"),{
-        invoiceNo:invoice,date,seller,buyer,items:valid,deliveryNote,buyersOrder,dispatchDoc,dispatchedThrough,destination,terms,
+        invoiceNo:invoice,date,seller,buyer,items:valid,deliveryNote,buyersOrder,dispatchDoc,dispatchedThrough,destination,terms,remarks,
         taxMode,taxRate:rate,subtotal,igst,cgst,sgst,total:grandTotal,amountWords:numberToWords(grandTotal),createdAt:serverTimestamp()
       });
       setMessage("Bill saved successfully. Salary aur Stock par koi effect nahi hua.");
@@ -157,6 +158,13 @@ export default function BillPage(){
                 <button className="btn btn-primary" style={{marginTop:9}} onClick={()=>saveParty("seller")}><Plus size={15}/> Save Seller</button>
               </div>
               <div style={{padding:14,background:"#f7faff",borderRadius:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,marginBottom:10}}>
+                  <b>Buyer</b>
+                  <select className="input" style={{maxWidth:260}} value={buyerId} onChange={e=>setBuyerId(e.target.value)}>
+                    <option value="">Select saved buyer</option>
+                    {buyers.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}
+                  </select>
+                </div>
                 <b>Save new Buyer</b>
                 <div className="party-grid">
                   <input className="input" placeholder="Name" value={newBuyer.name} onChange={e=>setNewBuyer({...newBuyer,name:e.target.value})}/>
@@ -175,7 +183,7 @@ export default function BillPage(){
               <input className="input" placeholder="Dispatch Doc No." value={dispatchDoc} onChange={e=>setDispatchDoc(e.target.value)}/>
               <input className="input" placeholder="Dispatched Through" value={dispatchedThrough} onChange={e=>setDispatchedThrough(e.target.value)}/>
               <input className="input" placeholder="Destination" value={destination} onChange={e=>setDestination(e.target.value)}/>
-              <input className="input" placeholder="Terms of Delivery" value={terms} onChange={e=>setTerms(e.target.value)} style={{gridColumn:"span 3"}}/>
+              <input className="input" placeholder="Terms of Delivery" value={terms} onChange={e=>setTerms(e.target.value)} style={{gridColumn:"span 3"}}/><input className="input" placeholder="Remarks" value={remarks} onChange={e=>setRemarks(e.target.value)} style={{gridColumn:"span 4"}}/>
             </div>
           </section>
 
@@ -193,11 +201,11 @@ export default function BillPage(){
 
           <div className="invoice">
             <div className="invoice-top"><div><div className="invoice-title">Tax Invoice</div><div className="copy-label">(ORIGINAL FOR RECIPIENT)</div></div><div style={{textAlign:"right"}}><b>Invoice No.: {invoice}</b><br/>Date: {date}<br/></div></div>
-            <div className="invoice-meta"><div><b>Seller (Bill From)</b><div className="party-name">{seller.name||"—"}</div><div>{seller.address||"—"}</div><div>GSTIN/UIN: {seller.gstin||"—"}</div><div>State: {seller.state||"—"} &nbsp; Code: {seller.stateCode||"—"}</div></div><div><b>Buyer (Bill To)</b><div className="party-name">{buyer.name||"—"}</div><div>{buyer.address||"—"}</div><div>GSTIN/UIN: {buyer.gstin||"—"}</div><div>State: {buyer.state||"—"} &nbsp; Code: {buyer.stateCode||"—"}</div></div><div><div>Delivery Note: {deliveryNote||"—"}</div><div>Buyer's Order No.: {buyersOrder||"—"}</div><div>Dispatch Doc No.: {dispatchDoc||"—"}</div><div>Dispatched Through: {dispatchedThrough||"—"}</div><div>Destination: {destination||"—"}</div></div></div>
+            <div className="invoice-meta"><div><div className="party-name">{seller.name||"—"}</div><div>{seller.address||"—"}</div><div>GSTIN/UIN: {seller.gstin||"—"}</div><div>State: {seller.state||"—"} &nbsp; Code: {seller.stateCode||"—"}</div></div><div><b>Buyer (Bill To)</b><div className="party-name">{buyer.name||"—"}</div><div>{buyer.address||"—"}</div><div>GSTIN/UIN: {buyer.gstin||"—"}</div><div>State: {buyer.state||"—"} &nbsp; Code: {buyer.stateCode||"—"}</div></div><div><div>Delivery Note: {deliveryNote||"—"}</div><div>Buyer's Order No.: {buyersOrder||"—"}</div><div>Dispatch Doc No.: {dispatchDoc||"—"}</div><div>Dispatched Through: {dispatchedThrough||"—"}</div><div>Destination: {destination||"—"}</div></div></div>
             <table className="invoice-table"><thead><tr><th>S.No.</th><th>Description of Goods</th><th>HSN/SAC</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead><tbody>{items.filter(x=>x.description.trim()).map((x,i)=><tr key={i}><td>{i+1}</td><td><b>{x.description}</b><div className="tax-inline">{taxMode==="igst"?`IGST @ ${rate}%`:taxMode==="cgst_sgst"?`CGST @ ${rate/2}% + SGST @ ${rate/2}%`:""}</div></td><td>{x.hsn}</td><td>{x.quantity} {x.unit}</td><td>{money(x.rate)}</td><td>{money(x.quantity*x.rate)}</td></tr>)}<tr><td colSpan={5} style={{textAlign:"right"}}><b>Taxable Value</b></td><td><b>{money(subtotal)}</b></td></tr>{igst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>IGST @ {rate}%</td><td>{money(igst)}</td></tr>}{cgst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>CGST @ {rate/2}%</td><td>{money(cgst)}</td></tr>}{sgst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>SGST @ {rate/2}%</td><td>{money(sgst)}</td></tr>}<tr><td colSpan={5} style={{textAlign:"right"}}><b>Grand Total</b></td><td><b>{money(grandTotal)}</b></td></tr></tbody></table>
             <div className="words"><b>Amount Chargeable (in words)</b><br/>{numberToWords(grandTotal)}</div>
             <div className="tax-summary"><div><b>Tax Summary</b></div><table><thead><tr><th>Taxable Value</th><th>Tax Rate</th><th>IGST</th><th>CGST</th><th>SGST</th><th>Total Tax</th></tr></thead><tbody><tr><td>{money(subtotal)}</td><td>{taxMode==="none"?0:rate}%</td><td>{money(igst)}</td><td>{money(cgst)}</td><td>{money(sgst)}</td><td>{money(tax)}</td></tr></tbody></table></div>
-            <div className="invoice-bottom"><div><b>Tax Amount (in words)</b><br/>{numberToWords(tax)}<br/><br/><b>Remarks:</b><br/>{terms||"—"}<br/><br/><b>Declaration</b><br/>We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</div><div className="signature"><b>for {seller.name||"Seller"}</b><div>Authorised Signatory</div></div></div>
+            <div className="invoice-bottom"><div><b>Tax Amount (in words)</b><br/>{numberToWords(tax)}<br/><br/><b>Remarks:</b><br/>{remarks||"—"}<br/><br/><b>Declaration</b><br/>We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</div><div className="signature"><b>for {seller.name||"Seller"}</b><div>Authorised Signatory</div></div></div>
             <div className="generated">This is a Computer Generated Invoice</div>
           </div>
 
@@ -205,11 +213,11 @@ export default function BillPage(){
 
           <div className="invoice">
             <div className="invoice-top"><div><div className="invoice-title">Tax Invoice</div><div className="copy-label">(DUPLICATE FOR TRANSPORTER)</div></div><div style={{textAlign:"right"}}><b>Invoice No.: {invoice}</b><br/>Date: {date}<br/></div></div>
-            <div className="invoice-meta"><div><b>Seller (Bill From)</b><div className="party-name">{seller.name||"—"}</div><div>{seller.address||"—"}</div><div>GSTIN/UIN: {seller.gstin||"—"}</div><div>State: {seller.state||"—"} &nbsp; Code: {seller.stateCode||"—"}</div></div><div><b>Buyer (Bill To)</b><div className="party-name">{buyer.name||"—"}</div><div>{buyer.address||"—"}</div><div>GSTIN/UIN: {buyer.gstin||"—"}</div><div>State: {buyer.state||"—"} &nbsp; Code: {buyer.stateCode||"—"}</div></div><div><div>Delivery Note: {deliveryNote||"—"}</div><div>Buyer's Order No.: {buyersOrder||"—"}</div><div>Dispatch Doc No.: {dispatchDoc||"—"}</div><div>Dispatched Through: {dispatchedThrough||"—"}</div><div>Destination: {destination||"—"}</div></div></div>
+            <div className="invoice-meta"><div><div className="party-name">{seller.name||"—"}</div><div>{seller.address||"—"}</div><div>GSTIN/UIN: {seller.gstin||"—"}</div><div>State: {seller.state||"—"} &nbsp; Code: {seller.stateCode||"—"}</div></div><div><b>Buyer (Bill To)</b><div className="party-name">{buyer.name||"—"}</div><div>{buyer.address||"—"}</div><div>GSTIN/UIN: {buyer.gstin||"—"}</div><div>State: {buyer.state||"—"} &nbsp; Code: {buyer.stateCode||"—"}</div></div><div><div>Delivery Note: {deliveryNote||"—"}</div><div>Buyer's Order No.: {buyersOrder||"—"}</div><div>Dispatch Doc No.: {dispatchDoc||"—"}</div><div>Dispatched Through: {dispatchedThrough||"—"}</div><div>Destination: {destination||"—"}</div></div></div>
             <table className="invoice-table"><thead><tr><th>S.No.</th><th>Description of Goods</th><th>HSN/SAC</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead><tbody>{items.filter(x=>x.description.trim()).map((x,i)=><tr key={i}><td>{i+1}</td><td><b>{x.description}</b><div className="tax-inline">{taxMode==="igst"?`IGST @ ${rate}%`:taxMode==="cgst_sgst"?`CGST @ ${rate/2}% + SGST @ ${rate/2}%`:""}</div></td><td>{x.hsn}</td><td>{x.quantity} {x.unit}</td><td>{money(x.rate)}</td><td>{money(x.quantity*x.rate)}</td></tr>)}<tr><td colSpan={5} style={{textAlign:"right"}}><b>Taxable Value</b></td><td><b>{money(subtotal)}</b></td></tr>{igst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>IGST @ {rate}%</td><td>{money(igst)}</td></tr>}{cgst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>CGST @ {rate/2}%</td><td>{money(cgst)}</td></tr>}{sgst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>SGST @ {rate/2}%</td><td>{money(sgst)}</td></tr>}<tr><td colSpan={5} style={{textAlign:"right"}}><b>Grand Total</b></td><td><b>{money(grandTotal)}</b></td></tr></tbody></table>
             <div className="words"><b>Amount Chargeable (in words)</b><br/>{numberToWords(grandTotal)}</div>
             <div className="tax-summary"><div><b>Tax Summary</b></div><table><thead><tr><th>Taxable Value</th><th>Tax Rate</th><th>IGST</th><th>CGST</th><th>SGST</th><th>Total Tax</th></tr></thead><tbody><tr><td>{money(subtotal)}</td><td>{taxMode==="none"?0:rate}%</td><td>{money(igst)}</td><td>{money(cgst)}</td><td>{money(sgst)}</td><td>{money(tax)}</td></tr></tbody></table></div>
-            <div className="invoice-bottom"><div><b>Tax Amount (in words)</b><br/>{numberToWords(tax)}<br/><br/><b>Remarks:</b><br/>{terms||"—"}<br/><br/><b>Declaration</b><br/>We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</div><div className="signature"><b>for {seller.name||"Seller"}</b><div>Authorised Signatory</div></div></div>
+            <div className="invoice-bottom"><div><b>Tax Amount (in words)</b><br/>{numberToWords(tax)}<br/><br/><b>Remarks:</b><br/>{remarks||"—"}<br/><br/><b>Declaration</b><br/>We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</div><div className="signature"><b>for {seller.name||"Seller"}</b><div>Authorised Signatory</div></div></div>
             <div className="generated">This is a Computer Generated Invoice</div>
           </div>
 
