@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import AuthGuard from "@/components/AuthGuard";
-import { addDoc, collection, onSnapshot, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { FileText, Plus, Printer, Save, X } from "lucide-react";
 
@@ -67,8 +67,22 @@ export default function BillPage(){
     const u1=onSnapshot(collection(db,"billSellers"),s=>setSellers(s.docs.map(d=>({id:d.id,...d.data()} as Party))));
     const u2=onSnapshot(collection(db,"billBuyers"),s=>setBuyers(s.docs.map(d=>({id:d.id,...d.data()} as Party))));
     const u3=onSnapshot(collection(db,"billDescriptions"),s=>setDescriptions(s.docs.map(d=>({id:d.id,...d.data()} as Description))));
+    getDoc(doc(db,"billDefaults","global")).then(s=>{
+      if(!s.exists()) return;
+      const d=s.data() as any;
+      setDeliveryNote(d.deliveryNote||"");
+      setBuyersOrder(d.buyersOrder||"");
+      setDispatchDoc(d.dispatchDoc||"");
+      setDispatchedThrough(d.dispatchedThrough||"");
+      setDestination(d.destination||"");
+      setTerms(d.terms||"");
+    }).catch(()=>{});
     return ()=>{u1();u2();u3()};
   },[]);
+
+  async function saveBillDefault(field:string,value:string){
+    try{ await setDoc(doc(db,"billDefaults","global"),{[field]:value,updatedAt:serverTimestamp()},{merge:true}); }catch(e){}
+  }
 
   useEffect(()=>{ const x=sellers.find(v=>v.id===sellerId); if(x) setSeller(x); },[sellerId,sellers]);
   useEffect(()=>{ const x=buyers.find(v=>v.id===buyerId); if(x) setBuyer(x); },[buyerId,buyers]);
@@ -115,6 +129,7 @@ export default function BillPage(){
     if(!valid.length){setError("Kam se kam 1 valid item dalo.");return;}
     setSaving(true);
     try{
+      await setDoc(doc(db,"billDefaults","global"),{deliveryNote,buyersOrder,dispatchDoc,dispatchedThrough,destination,terms,updatedAt:serverTimestamp()},{merge:true});
       await addDoc(collection(db,"bills"),{
         invoiceNo:invoice,date,seller,buyer,items:valid,deliveryNote,buyersOrder,dispatchDoc,dispatchedThrough,destination,terms,remarks,
         taxMode,taxRate:rate,subtotal,igst,cgst,sgst,total:grandTotal,amountWords:numberToWords(grandTotal),createdAt:serverTimestamp()
@@ -178,12 +193,13 @@ export default function BillPage(){
               </div>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginTop:14}}>
-              <input className="input" placeholder="Delivery Note" value={deliveryNote} onChange={e=>setDeliveryNote(e.target.value)}/>
-              <input className="input" placeholder="Buyer's Order No." value={buyersOrder} onChange={e=>setBuyersOrder(e.target.value)}/>
-              <input className="input" placeholder="Dispatch Doc No." value={dispatchDoc} onChange={e=>setDispatchDoc(e.target.value)}/>
-              <input className="input" placeholder="Dispatched Through" value={dispatchedThrough} onChange={e=>setDispatchedThrough(e.target.value)}/>
-              <input className="input" placeholder="Destination" value={destination} onChange={e=>setDestination(e.target.value)}/>
-              <input className="input" placeholder="Terms of Delivery" value={terms} onChange={e=>setTerms(e.target.value)} style={{gridColumn:"span 3"}}/><input className="input" placeholder="Remarks" value={remarks} onChange={e=>setRemarks(e.target.value)} style={{gridColumn:"span 4"}}/>
+              <input className="input" placeholder="Delivery Note" value={deliveryNote} onChange={e=>setDeliveryNote(e.target.value)} onBlur={e=>saveBillDefault("deliveryNote",e.target.value)}/>
+              <input className="input" placeholder="Buyer's Order No." value={buyersOrder} onChange={e=>setBuyersOrder(e.target.value)} onBlur={e=>saveBillDefault("buyersOrder",e.target.value)}/>
+              <input className="input" placeholder="Dispatch Doc No." value={dispatchDoc} onChange={e=>setDispatchDoc(e.target.value)} onBlur={e=>saveBillDefault("dispatchDoc",e.target.value)}/>
+              <input className="input" placeholder="Dispatched Through" value={dispatchedThrough} onChange={e=>setDispatchedThrough(e.target.value)} onBlur={e=>saveBillDefault("dispatchedThrough",e.target.value)}/>
+              <input className="input" placeholder="Destination" value={destination} onChange={e=>setDestination(e.target.value)} onBlur={e=>saveBillDefault("destination",e.target.value)}/>
+              <input className="input" placeholder="Terms of Delivery" value={terms} onChange={e=>setTerms(e.target.value)} onBlur={e=>saveBillDefault("terms",e.target.value)} style={{gridColumn:"span 3"}}/><input className="input" placeholder="Remarks" value={remarks} onChange={e=>setRemarks(e.target.value)} style={{gridColumn:"span 4"}}/>
+              <div style={{gridColumn:"span 4",fontSize:11,color:"#168f67"}}>Dispatch Doc No., Dispatched Through, Destination aur Terms ek baar bharne ke baad automatically save hote hain aur next bill mein dobara fill nahi karna padega.</div>
             </div>
           </section>
 
