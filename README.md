@@ -20,6 +20,3 @@
 Important: Firebase client configuration is safe to use in a web app, but Firestore Security Rules must protect the `users` collection and all business data. Do not put Firebase Admin SDK private keys in this repository.
 
 Custom domain: smc.site.je
-
-
-A4 FULL PAGE: Bill/Tax Invoice print layout is fixed to one complete A4 page per copy, with duplicate copy on the next A4 page.\n
