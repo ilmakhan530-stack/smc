@@ -9,6 +9,7 @@ const items:any[]=[
   ["Salary","/salary",WalletCards],
   ["Advance","/advance",WalletMinimal],
   ["Thekedar Work","/thekedar",HardHat],
+  ["Bill","/bill",ReceiptIndianRupee],
   ["Stock","/stock",Package],
   ["Party","#",Handshake],
   ["Expenses","#",ReceiptIndianRupee],
