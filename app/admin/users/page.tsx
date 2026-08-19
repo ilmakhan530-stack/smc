@@ -9,20 +9,25 @@ import Sidebar from "@/components/Sidebar";
 const modules = ["dashboard","attendance","staff","labour","salary","advance","thekedar","stock","bill","reports","users"] as const;
 const actions = ["view","add","edit","delete"] as const;
 type Permission = {view?:boolean;add?:boolean;edit?:boolean;delete?:boolean};
+type ModuleKey = typeof modules[number];
+type Permissions = Record<ModuleKey, Permission>;
 type UserRow = {id:string;email?:string;name?:string;role?:string;enabled?:boolean;permissions?:Record<string,Permission>};
 
-const blankPerms = () => Object.fromEntries(modules.map(m=>[m,{view:false,add:false,edit:false,delete:false}])) as Record<string,Permission>;
+const blankPerms = (): Permissions =>
+  Object.fromEntries(
+    modules.map(m => [m, {view:false, add:false, edit:false, delete:false}])
+  ) as Permissions;
 
 export default function UserManagement(){
  const [users,setUsers]=useState<UserRow[]>([]);
  const [email,setEmail]=useState(""); const [password,setPassword]=useState("");
  const [name,setName]=useState(""); const [role,setRole]=useState("attendance");
- const [permissions,setPermissions]=useState<Record<string,Permission>>(blankPerms());
+ const [permissions,setPermissions]=useState<Permissions>(blankPerms());
  const [msg,setMsg]=useState(""); const [err,setErr]=useState(""); const [saving,setSaving]=useState(false);
 
  useEffect(()=>onSnapshot(collection(db,"users"),s=>setUsers(s.docs.map(d=>({id:d.id,...d.data()} as UserRow)))),[]);
 
- function toggle(m: keyof Permissions, a: keyof Permission) {
+ function toggle(m: ModuleKey, a: keyof Permission) {
   setPermissions(p => ({
     ...p,
     [m]: {
