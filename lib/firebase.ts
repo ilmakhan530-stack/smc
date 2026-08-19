@@ -41,7 +41,7 @@ export async function createManagedUser(
     }, { merge: true });
 
     await signOut(secondaryAuth);
-    return credential.user.uid;
+    return credential.user;
   } catch (error) {
     try { await signOut(secondaryAuth); } catch {}
     throw error;
