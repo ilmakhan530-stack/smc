@@ -27,7 +27,13 @@ export default function AuthGuard({
       }
 
       const snap = await getDoc(doc(db, "users", user.uid));
-      const data = snap.data() || {};\n      if (data.enabled === false) { await auth.signOut(); router.replace("/login"); return; }\n      const role = (data.role || "attendance") as UserRole;
+      const data = snap.data() || {};
+      if (data.enabled === false) {
+        await auth.signOut();
+        router.replace("/login");
+        return;
+      }
+      const role = (data.role || "attendance") as UserRole;
 
       if (allowedRoles && !allowedRoles.includes(role)) {
         router.replace(role === "attendance" ? "/attendance" : "/dashboard");
