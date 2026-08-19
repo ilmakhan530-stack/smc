@@ -1,5 +1,5 @@
-import { initializeApp, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { initializeApp, getApps, deleteApp } from "firebase/app";
+import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -14,3 +14,18 @@ const firebaseConfig = {
 export const firebaseApp = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 export const auth = getAuth(firebaseApp);
 export const db = getFirestore(firebaseApp);
+
+
+export async function createManagedUser(email: string, password: string) {
+  const secondary = initializeApp(firebaseConfig, `admin-user-create-${Date.now()}`);
+  const secondaryAuth = getAuth(secondary);
+  try {
+    const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+    await signOut(secondaryAuth);
+    await deleteApp(secondary);
+    return cred.user;
+  } catch (e) {
+    try { await deleteApp(secondary); } catch {}
+    throw e;
+  }
+}
