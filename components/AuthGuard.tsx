@@ -5,126 +5,114 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import SessionTracker from "@/components/SessionTracker";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 
-export type UserRole = "admin" | "attendance" | "stock" | "accounts";
+export type UserRole = "admin" | "attendance" | "stock" | "accounts" | "bill";
+export type PermissionKey =
+  | "dashboard" | "labour" | "staff" | "attendance" | "salary"
+  | "advance" | "thekedar" | "bill" | "stock" | "reports";
 
-export type UserPermissions = Record<string, boolean>;
+type PermissionMap = Partial<Record<PermissionKey, boolean>>;
 
-export const ROUTE_PERMISSIONS: Record<string, string> = {
-  "/dashboard": "dashboard",
-  "/labour": "labour",
-  "/staff": "staff",
-  "/attendance": "attendance",
-  "/salary": "salary",
-  "/advance": "advance",
-  "/thekedar": "thekedar",
-  "/bill": "bill",
-  "/stock": "stock",
-  "/reports": "reports",
+export const ROLE_FALLBACK_PERMISSIONS: Record<Exclude<UserRole, "admin">, PermissionKey[]> = {
+  attendance: ["attendance"],
+  stock: ["stock"],
+  accounts: ["dashboard", "reports"],
+  bill: ["bill"],
 };
 
-function permissionForPath(pathname: string) {
-  const exact = Object.keys(ROUTE_PERMISSIONS).find(path => pathname === path || pathname.startsWith(`${path}/`));
-  return exact ? ROUTE_PERMISSIONS[exact] : undefined;
+export function hasModulePermission(
+  role: UserRole | undefined,
+  permissions: PermissionMap | undefined,
+  key: PermissionKey,
+  permissionsConfigured = true
+) {
+  if (role === "admin") return true;
+  if (permissionsConfigured) return !!permissions?.[key];
+  if (!role) return false;
+  return ROLE_FALLBACK_PERMISSIONS[role]?.includes(key) ?? false;
 }
 
-function firstAllowedPath(role: UserRole, permissions: UserPermissions) {
+export function firstAllowedRoute(
+  role: UserRole,
+  permissions?: PermissionMap,
+  permissionsConfigured = true
+) {
   if (role === "admin") return "/dashboard";
-  const order = [
-    ["dashboard", "/dashboard"],
-    ["attendance", "/attendance"],
-    ["bill", "/bill"],
-    ["stock", "/stock"],
-    ["labour", "/labour"],
-    ["staff", "/staff"],
-    ["salary", "/salary"],
-    ["advance", "/advance"],
-    ["thekedar", "/thekedar"],
+  const routes: Array<[PermissionKey, string]> = [
+    ["dashboard", "/dashboard"], ["attendance", "/attendance"], ["bill", "/bill"],
+    ["stock", "/stock"], ["labour", "/labour"], ["staff", "/staff"],
+    ["salary", "/salary"], ["advance", "/advance"], ["thekedar", "/thekedar"],
     ["reports", "/reports"],
-  ] as const;
-  const found = order.find(([key]) => permissions[key]);
+  ];
+  const found = routes.find(([key]) => hasModulePermission(role, permissions, key, permissionsConfigured));
   return found?.[1] || "/login";
 }
 
 export default function AuthGuard({
   children,
   allowedRoles,
+  requiredPermission,
 }: {
   children: React.ReactNode;
   allowedRoles?: UserRole[];
+  requiredPermission?: PermissionKey;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
   const [loading, setLoading] = useState(true);
   const [allowed, setAllowed] = useState(false);
   const [role, setRole] = useState<UserRole>("attendance");
 
   useEffect(() => {
+    let alive = true;
     const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
       if (!user) {
-        setAllowed(false);
-        setLoading(false);
+        if (alive) setLoading(false);
         router.replace("/login");
         return;
       }
 
       try {
         const snap = await getDoc(doc(db, "users", user.uid));
-        if (!snap.exists()) {
-          setAllowed(false);
-          setLoading(false);
-          router.replace("/login");
-          return;
-        }
-
         const data = snap.data() || {};
         const userRole = (data.role || "attendance") as UserRole;
-        const permissions = (data.permissions || {}) as UserPermissions;
-
-        setRole(userRole);
+        const permissions = (data.permissions || undefined) as PermissionMap | undefined;
+        const permissionsConfigured = !!data.permissions && typeof data.permissions === "object";
 
         if (data.enabled === false) {
-          setAllowed(false);
-          setLoading(false);
           await auth.signOut();
+          if (alive) setLoading(false);
           router.replace("/login");
           return;
         }
 
-        // Admin keeps full access. For every other user, module access is
-        // controlled by the saved permission checkbox, not only by role.
-        const requiredPermission = permissionForPath(pathname);
-        const roleAllowed = !allowedRoles || allowedRoles.includes(userRole) || userRole === "admin";
+        if (!alive) return;
+        setRole(userRole);
 
-        if (userRole !== "admin") {
-          if (requiredPermission && !permissions[requiredPermission]) {
-            setAllowed(false);
-            setLoading(false);
-            router.replace(firstAllowedPath(userRole, permissions));
-            return;
-          }
-          if (!requiredPermission && !roleAllowed) {
-            setAllowed(false);
-            setLoading(false);
-            router.replace(firstAllowedPath(userRole, permissions));
-            return;
-          }
-        } else if (allowedRoles && !allowedRoles.includes("admin") && !allowedRoles.includes(userRole)) {
-          // Admin is intentionally allowed through all protected business modules.
+        const roleAllowed = !allowedRoles || allowedRoles.includes(userRole) || userRole === "admin";
+        const permissionAllowed = !requiredPermission || hasModulePermission(
+          userRole, permissions, requiredPermission, permissionsConfigured
+        );
+
+        if (!roleAllowed || !permissionAllowed) {
+          router.replace(firstAllowedRoute(userRole, permissions, permissionsConfigured));
+          return;
         }
 
         setAllowed(true);
         setLoading(false);
       } catch {
-        setAllowed(false);
+        if (!alive) return;
         setLoading(false);
         router.replace("/login");
       }
     });
 
-    return () => unsubscribe();
-  }, [router, pathname, allowedRoles]);
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, [router, requiredPermission, allowedRoles]);
 
   if (loading || !allowed) {
     return <div style={{minHeight:"100vh",display:"grid",placeItems:"center",background:"#f6f9ff"}}>Checking secure access…</div>;

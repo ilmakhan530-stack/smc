@@ -52,7 +52,7 @@ export default function LabourPage(){
     try{ await deleteDoc(doc(db,"labour",l.id)); }catch(e:any){ setError(e?.message || "Could not delete labour"); }
   }
 
-  return <AuthGuard allowedRoles={["admin"]}><div style={{display:"flex",minHeight:"100vh"}}><Sidebar/><main style={{flex:1,padding:"30px 34px",minWidth:0}}>
+  return <AuthGuard requiredPermission="labour"><div style={{display:"flex",minHeight:"100vh"}}><Sidebar/><main style={{flex:1,padding:"30px 34px",minWidth:0}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:20,marginBottom:24}}>
       <div><div style={{color:"#168f67",fontWeight:800,fontSize:12,letterSpacing:2}}>SMC MANAGEMENT</div><h1 style={{margin:"6px 0",fontSize:30,color:"#082b68"}}>Labour Management</h1><p style={{margin:0,color:"#6d7d96"}}>Manage labour records, monthly salary and active status.</p></div>
       <button className="btn btn-primary" onClick={startAdd} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}><Plus size={18}/> Add Labour</button>

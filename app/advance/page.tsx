@@ -51,7 +51,7 @@ export default function AdvancePage(){
     finally{setSaving(false)}
   }
 
-  return <AuthGuard allowedRoles={["admin"]}>
+  return <AuthGuard requiredPermission="advance">
     <div style={{display:"flex",minHeight:"100vh"}}>
       <Sidebar/>
       <main style={{flex:1,padding:"30px 34px",minWidth:0}}>

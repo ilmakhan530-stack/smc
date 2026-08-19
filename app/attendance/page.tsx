@@ -161,7 +161,7 @@ export default function Attendance() {
   );
 
   return (
-    <AuthGuard allowedRoles={["admin", "attendance"]}>
+    <AuthGuard requiredPermission="attendance">
       <div style={{ display: "flex", minHeight: "100vh" }}>
         <Sidebar />
         <main style={{ flex: 1, padding: "30px 34px", minWidth: 0 }}>

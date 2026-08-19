@@ -143,6 +143,7 @@ function UsersPanel() {
             <option value="attendance">Attendance</option>
             <option value="stock">Stock</option>
             <option value="accounts">Accounts</option>
+            <option value="bill">Bill / Tax Invoice</option>
             <option value="admin">Admin</option>
           </select>
         </div>
@@ -197,6 +198,7 @@ function UsersPanel() {
                 <option value="attendance">Attendance</option>
                 <option value="stock">Stock</option>
                 <option value="accounts">Accounts</option>
+                <option value="bill">Bill / Tax Invoice</option>
                 <option value="admin">Admin</option>
               </select>
 

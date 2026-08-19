@@ -149,7 +149,7 @@ export default function StaffPage() {
   }
 
   return (
-    <AuthGuard allowedRoles={["admin"]}>
+    <AuthGuard requiredPermission="staff">
       <div style={{ display: "flex", minHeight: "100vh" }}>
         <Sidebar />
         <main style={{ flex: 1, padding: "30px 34px", minWidth: 0 }}>
