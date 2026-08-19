@@ -13,7 +13,8 @@ const items:any[]=[
   ["Stock","/stock",Package],
   ["Party","#",Handshake],
   ["Expenses","#",ReceiptIndianRupee],
-  ["Reports","/reports",BarChart3]
+  ["Reports","/reports",BarChart3],
+  ["User Activity","/admin/sessions",Users]
 ];
 
 export default function Sidebar(){
