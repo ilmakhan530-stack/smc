@@ -14,6 +14,7 @@ const items:any[]=[
   ["Party","#",Handshake],
   ["Expenses","#",ReceiptIndianRupee],
   ["Reports","/reports",BarChart3],
+  ["User Management","/admin/users",Users],
   ["User Activity","/admin/sessions",Users]
 ];
 
