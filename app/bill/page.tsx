@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import AuthGuard from "@/components/AuthGuard";
-import { addDoc, collection, doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { FileText, Plus, Printer, Save, X } from "lucide-react";
+import { FileText, Plus, Printer, Save, X, Pencil, Trash2 } from "lucide-react";
 
 type Party = { id:string; name:string; address?:string; gstin?:string; state?:string; stateCode?:string; mobile?:string };
 type Description = { id:string; text:string; hsn?:string; unit?:string };
@@ -47,6 +47,7 @@ export default function BillPage(){
   const [newSeller,setNewSeller]=useState<Party>({id:"",name:"",address:"",gstin:"",state:"",stateCode:"",mobile:""});
   const [newBuyer,setNewBuyer]=useState<Party>({id:"",name:"",address:"",gstin:"",state:"",stateCode:"",mobile:""});
   const [newDescription,setNewDescription]=useState<Description>({id:"",text:"",hsn:"",unit:"PCS"});
+  const [editingDescriptionId,setEditingDescriptionId]=useState("");
   const [items,setItems]=useState<BillItem[]>([{description:"",hsn:"",quantity:0,unit:"PCS",rate:0}]);
   const [date,setDate]=useState(today());
   const [invoice,setInvoice]=useState(invoiceNo());
@@ -127,11 +128,32 @@ export default function BillPage(){
   async function saveDescription(){
     if(!newDescription.text.trim()){setError("Description dalo.");return;}
     try{
-      const ref=await addDoc(collection(db,"billDescriptions"),{text:newDescription.text.trim(),hsn:newDescription.hsn?.trim()||"",unit:newDescription.unit?.trim()||"PCS",createdAt:serverTimestamp()});
+      const data={text:newDescription.text.trim(),hsn:newDescription.hsn?.trim()||"",unit:newDescription.unit?.trim()||"PCS",updatedAt:serverTimestamp()};
+      if(editingDescriptionId){
+        await setDoc(doc(db,"billDescriptions",editingDescriptionId),data,{merge:true});
+        setMessage("Description updated.");
+      }else{
+        const ref=await addDoc(collection(db,"billDescriptions"),{...data,createdAt:serverTimestamp()});
+        setMessage("Description saved.");
+        if(items.length===1&&!items[0].description) selectDescription(0,ref.id);
+      }
       setNewDescription({id:"",text:"",hsn:"",unit:"PCS"});
-      setMessage("Description saved.");
-      if(items.length===1&&!items[0].description) selectDescription(0,ref.id);
+      setEditingDescriptionId("");
     }catch(e:any){setError(e?.message||"Description save nahi hui.");}
+  }
+  function startEditDescription(id:string){
+    const d=descriptions.find(x=>x.id===id);
+    if(!d) return;
+    setNewDescription(d);
+    setEditingDescriptionId(id);
+    setMessage("Description edit mode mein hai.");
+  }
+  async function removeDescription(id:string){
+    try{
+      await deleteDoc(doc(db,"billDescriptions",id));
+      if(editingDescriptionId===id){setEditingDescriptionId("");setNewDescription({id:"",text:"",hsn:"",unit:"PCS"});}
+      setMessage("Description deleted.");
+    }catch(e:any){setError(e?.message||"Description delete nahi hui.");}
   }
   async function saveBill(){
     setError("");setMessage("");
@@ -218,9 +240,9 @@ export default function BillPage(){
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}><h2 style={{margin:0,fontSize:18,color:"#17345f"}}>Items</h2><div style={{display:"flex",gap:8,alignItems:"center"}}><select className="input" style={{width:210}} value={taxMode} onChange={e=>setTaxMode(e.target.value as TaxMode)}><option value="igst">IGST</option><option value="cgst_sgst">CGST + SGST (Both)</option><option value="none">No Tax</option></select>{taxMode!=="none"&&<input className="input" type="number" min="0" style={{width:90}} value={taxRate} onChange={e=>setTaxRate(e.target.value)}/>}<span>%</span></div></div>
             <div style={{overflowX:"auto",marginTop:12}}>
               <table className="editor-table"><thead><tr><th>Description</th><th>HSN/SAC</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Amount</th><th></th></tr></thead>
-              <tbody>{items.map((x,i)=><tr key={i}><td><select className="input" value={descriptions.find(d=>d.text===x.description)?.id||""} onChange={e=>selectDescription(i,e.target.value)}><option value="">Type / select description</option>{descriptions.map(d=><option key={d.id} value={d.id}>{d.text}</option>)}</select><input className="input" style={{marginTop:6}} value={x.description} placeholder="Description" onChange={e=>updateItem(i,"description",e.target.value)}/></td><td><input className="input" value={x.hsn} onChange={e=>updateItem(i,"hsn",e.target.value)}/></td><td><input className="input" type="number" min="0" value={x.quantity||""} onChange={e=>updateItem(i,"quantity",e.target.value)}/></td><td><input className="input" value={x.unit} onChange={e=>updateItem(i,"unit",e.target.value)}/></td><td><input className="input" type="number" min="0" value={x.rate||""} onChange={e=>updateItem(i,"rate",e.target.value)}/></td><td><b>{money(Number(x.quantity||0)*Number(x.rate||0))}</b></td><td><button className="icon-btn" onClick={()=>setItems(a=>a.length===1?a:a.filter((_,idx)=>idx!==i))}><X size={16}/></button></td></tr>)}</tbody></table>
+              <tbody>{items.map((x,i)=><tr key={i}><td><div style={{display:"flex",gap:6,alignItems:"center"}}><select className="input" value={descriptions.find(d=>d.text===x.description)?.id||""} onChange={e=>selectDescription(i,e.target.value)}><option value="">Type / select description</option>{descriptions.map(d=><option key={d.id} value={d.id}>{d.text}</option>)}</select>{(() => { const sid=descriptions.find(d=>d.text===x.description)?.id; return sid ? <><button type="button" className="icon-btn" title="Edit description" onClick={()=>startEditDescription(sid)}><Pencil size={15}/></button><button type="button" className="icon-btn" title="Delete description" onClick={()=>removeDescription(sid)}><Trash2 size={15}/></button></> : null; })()}</div><input className="input" style={{marginTop:6}} value={x.description} placeholder="Description" onChange={e=>updateItem(i,"description",e.target.value)}/></td><td><input className="input" value={x.hsn} onChange={e=>updateItem(i,"hsn",e.target.value)}/></td><td><input className="input" type="number" min="0" value={x.quantity||""} onChange={e=>updateItem(i,"quantity",e.target.value)}/></td><td><input className="input" value={x.unit} onChange={e=>updateItem(i,"unit",e.target.value)}/></td><td><input className="input" type="number" min="0" value={x.rate||""} onChange={e=>updateItem(i,"rate",e.target.value)}/></td><td><b>{money(Number(x.quantity||0)*Number(x.rate||0))}</b></td><td><button className="icon-btn" onClick={()=>setItems(a=>a.length===1?a:a.filter((_,idx)=>idx!==i))}><X size={16}/></button></td></tr>)}</tbody></table>
             </div>
-            <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}><button className="btn" onClick={()=>setItems(a=>[...a,{description:"",hsn:"",quantity:0,unit:"PCS",rate:0}])}><Plus size={15}/> Add Item</button><div style={{display:"flex",gap:8,alignItems:"center",marginLeft:"auto"}}><input className="input" placeholder="Save description" value={newDescription.text} onChange={e=>setNewDescription({...newDescription,text:e.target.value})}/><input className="input" style={{width:110}} placeholder="HSN" value={newDescription.hsn} onChange={e=>setNewDescription({...newDescription,hsn:e.target.value})}/><button className="btn" onClick={saveDescription}>Save Description</button></div></div>
+            <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}><button className="btn" onClick={()=>setItems(a=>[...a,{description:"",hsn:"",quantity:0,unit:"PCS",rate:0}])}><Plus size={15}/> Add Item</button><div style={{display:"flex",gap:8,alignItems:"center",marginLeft:"auto"}}><input className="input" placeholder={editingDescriptionId?"Edit description":"Save description"} value={newDescription.text} onChange={e=>setNewDescription({...newDescription,text:e.target.value})}/><input className="input" style={{width:110}} placeholder="HSN" value={newDescription.hsn} onChange={e=>setNewDescription({...newDescription,hsn:e.target.value})}/><button className="btn" onClick={saveDescription}>{editingDescriptionId?"Update Description":"Save Description"}</button>{editingDescriptionId&&<button className="btn" onClick={()=>{setEditingDescriptionId("");setNewDescription({id:"",text:"",hsn:"",unit:"PCS"})}}>Cancel</button>}</div></div>
           </section>
         </div>
 
@@ -231,7 +253,7 @@ export default function BillPage(){
             <div className="invoice-meta"><div><b>Seller (Bill From)</b><div className="party-name">{seller.name||"—"}</div><div>{seller.address||"—"}</div><div>GSTIN/UIN: {seller.gstin||"—"}</div><div>State: {seller.state||"—"} &nbsp; Code: {seller.stateCode||"—"}</div></div><div><b>Buyer (Bill To)</b><div className="party-name">{buyer.name||"—"}</div><div>{buyer.address||"—"}</div><div>GSTIN/UIN: {buyer.gstin||"—"}</div><div>State: {buyer.state||"—"} &nbsp; Code: {buyer.stateCode||"—"}</div></div><div><div>Delivery Note: {deliveryNote||"—"}</div><div>Buyer's Order No.: {buyersOrder||"—"}</div><div>Dispatch Doc No.: {dispatchDoc||"—"}</div><div>Dispatched Through: {dispatchedThrough||"—"}</div><div>Destination: {destination||"—"}</div></div></div>
             <table className="invoice-table"><thead><tr><th>S.No.</th><th>Description of Goods</th><th>HSN/SAC</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead><tbody>{items.filter(x=>x.description.trim()).map((x,i)=><tr key={i}><td>{i+1}</td><td><b>{x.description}</b><div className="tax-inline">{taxMode==="igst"?`IGST @ ${rate}%`:taxMode==="cgst_sgst"?`CGST @ ${rate/2}% + SGST @ ${rate/2}%`:""}</div></td><td>{x.hsn}</td><td>{x.quantity} {x.unit}</td><td>{money(x.rate)}</td><td>{money(x.quantity*x.rate)}</td></tr>)}<tr><td colSpan={5} style={{textAlign:"right"}}><b>Taxable Value</b></td><td><b>{money(subtotal)}</b></td></tr>{igst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>IGST @ {rate}%</td><td>{money(igst)}</td></tr>}{cgst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>CGST @ {rate/2}%</td><td>{money(cgst)}</td></tr>}{sgst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>SGST @ {rate/2}%</td><td>{money(sgst)}</td></tr>}<tr><td colSpan={5} style={{textAlign:"right"}}><b>Grand Total</b></td><td><b>{money(grandTotal)}</b></td></tr></tbody></table>
             <div className="words"><b>Amount Chargeable (in words)</b><br/>{numberToWords(grandTotal)}</div>
-            <div className="tax-summary"><div><b>Tax Summary</b></div><table><thead><tr><th>Taxable Value</th><th>Tax Rate</th><th>IGST</th><th>CGST</th><th>SGST</th><th>Total Tax</th></tr></thead><tbody><tr><td>{money(subtotal)}</td><td>{taxMode==="none"?0:rate}%</td><td>{money(igst)}</td><td>{money(cgst)}</td><td>{money(sgst)}</td><td>{money(tax)}</td></tr></tbody></table></div>
+            <div className="tax-summary"><div><b>Tax Summary</b></div><table><thead><tr><th>Taxable Value</th><th>Tax Rate</th>{taxMode==="igst"&&<th>IGST</th>}{taxMode==="cgst_sgst"&&<><th>CGST</th><th>SGST</th></>}{taxMode==="none"&&<th>Tax</th>}<th>Total Tax</th></tr></thead><tbody><tr><td>{money(subtotal)}</td><td>{taxMode==="none"?0:rate}%</td>{taxMode==="igst"&&<td>{money(igst)}</td>}{taxMode==="cgst_sgst"&&<><td>{money(cgst)}</td><td>{money(sgst)}</td></>}{taxMode==="none"&&<td>{money(0)}</td>}<td>{money(tax)}</td></tr></tbody></table></div>
             <div className="invoice-bottom"><div><b>Tax Amount (in words)</b><br/>{numberToWords(tax)}<br/><br/><b>Remarks:</b><br/>{remarks||"—"}<br/><br/><b>Declaration</b><br/>We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</div><div className="signature"><b>for {seller.name||"Seller"}</b><div>Authorised Signatory</div></div></div>
             <div className="generated">This is a Computer Generated Invoice</div>
           </div>
@@ -243,7 +265,7 @@ export default function BillPage(){
             <div className="invoice-meta"><div><b>Seller (Bill From)</b><div className="party-name">{seller.name||"—"}</div><div>{seller.address||"—"}</div><div>GSTIN/UIN: {seller.gstin||"—"}</div><div>State: {seller.state||"—"} &nbsp; Code: {seller.stateCode||"—"}</div></div><div><b>Buyer (Bill To)</b><div className="party-name">{buyer.name||"—"}</div><div>{buyer.address||"—"}</div><div>GSTIN/UIN: {buyer.gstin||"—"}</div><div>State: {buyer.state||"—"} &nbsp; Code: {buyer.stateCode||"—"}</div></div><div><div>Delivery Note: {deliveryNote||"—"}</div><div>Buyer's Order No.: {buyersOrder||"—"}</div><div>Dispatch Doc No.: {dispatchDoc||"—"}</div><div>Dispatched Through: {dispatchedThrough||"—"}</div><div>Destination: {destination||"—"}</div></div></div>
             <table className="invoice-table"><thead><tr><th>S.No.</th><th>Description of Goods</th><th>HSN/SAC</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead><tbody>{items.filter(x=>x.description.trim()).map((x,i)=><tr key={i}><td>{i+1}</td><td><b>{x.description}</b><div className="tax-inline">{taxMode==="igst"?`IGST @ ${rate}%`:taxMode==="cgst_sgst"?`CGST @ ${rate/2}% + SGST @ ${rate/2}%`:""}</div></td><td>{x.hsn}</td><td>{x.quantity} {x.unit}</td><td>{money(x.rate)}</td><td>{money(x.quantity*x.rate)}</td></tr>)}<tr><td colSpan={5} style={{textAlign:"right"}}><b>Taxable Value</b></td><td><b>{money(subtotal)}</b></td></tr>{igst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>IGST @ {rate}%</td><td>{money(igst)}</td></tr>}{cgst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>CGST @ {rate/2}%</td><td>{money(cgst)}</td></tr>}{sgst>0&&<tr><td colSpan={5} style={{textAlign:"right"}}>SGST @ {rate/2}%</td><td>{money(sgst)}</td></tr>}<tr><td colSpan={5} style={{textAlign:"right"}}><b>Grand Total</b></td><td><b>{money(grandTotal)}</b></td></tr></tbody></table>
             <div className="words"><b>Amount Chargeable (in words)</b><br/>{numberToWords(grandTotal)}</div>
-            <div className="tax-summary"><div><b>Tax Summary</b></div><table><thead><tr><th>Taxable Value</th><th>Tax Rate</th><th>IGST</th><th>CGST</th><th>SGST</th><th>Total Tax</th></tr></thead><tbody><tr><td>{money(subtotal)}</td><td>{taxMode==="none"?0:rate}%</td><td>{money(igst)}</td><td>{money(cgst)}</td><td>{money(sgst)}</td><td>{money(tax)}</td></tr></tbody></table></div>
+            <div className="tax-summary"><div><b>Tax Summary</b></div><table><thead><tr><th>Taxable Value</th><th>Tax Rate</th>{taxMode==="igst"&&<th>IGST</th>}{taxMode==="cgst_sgst"&&<><th>CGST</th><th>SGST</th></>}{taxMode==="none"&&<th>Tax</th>}<th>Total Tax</th></tr></thead><tbody><tr><td>{money(subtotal)}</td><td>{taxMode==="none"?0:rate}%</td>{taxMode==="igst"&&<td>{money(igst)}</td>}{taxMode==="cgst_sgst"&&<><td>{money(cgst)}</td><td>{money(sgst)}</td></>}{taxMode==="none"&&<td>{money(0)}</td>}<td>{money(tax)}</td></tr></tbody></table></div>
             <div className="invoice-bottom"><div><b>Tax Amount (in words)</b><br/>{numberToWords(tax)}<br/><br/><b>Remarks:</b><br/>{remarks||"—"}<br/><br/><b>Declaration</b><br/>We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</div><div className="signature"><b>for {seller.name||"Seller"}</b><div>Authorised Signatory</div></div></div>
             <div className="generated">This is a Computer Generated Invoice</div>
           </div>
