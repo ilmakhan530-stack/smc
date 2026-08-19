@@ -22,7 +22,15 @@ export default function UserManagement(){
 
  useEffect(()=>onSnapshot(collection(db,"users"),s=>setUsers(s.docs.map(d=>({id:d.id,...d.data()} as UserRow)))),[]);
 
- function toggle(m:string,a:string){setPermissions(p=>({...p,[m]:{...p[m],[a]:!p[m]?.[a]}}));}
+ function toggle(m: keyof Permissions, a: keyof Permission) {
+  setPermissions(p => ({
+    ...p,
+    [m]: {
+      ...p[m],
+      [a]: !p[m][a]
+    }
+  }));
+}
  async function create(){
    setMsg("");setErr("");
    if(!email||!password||password.length<6){setErr("Email aur minimum 6 character password dalo.");return;}
