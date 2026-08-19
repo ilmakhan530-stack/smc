@@ -1,10 +1,13 @@
 "use client";
 
+import AuthGuard from "@/components/AuthGuard";
+import Sidebar from "@/components/Sidebar";
 import Link from "next/link";
 
 export default function ReportsPage(){
   return (
-    <main style={{padding:24,fontFamily:"Arial, sans-serif"}}>
+    <AuthGuard allowedRoles={["admin"]}>
+      <div style={{display:"flex",minHeight:"100vh"}}><Sidebar /><main style={{padding:24,fontFamily:"Arial, sans-serif"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
         <div>
           <h1 style={{margin:0,color:"#17345f"}}>Reports</h1>
@@ -29,6 +32,7 @@ export default function ReportsPage(){
           <Link href="/advance">Open Advance</Link>
         </div>
       </div>
-    </main>
+    </main></div>
+    </AuthGuard>
   );
 }
