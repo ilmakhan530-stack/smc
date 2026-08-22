@@ -173,7 +173,7 @@ export default function BillPage(){
   }
   function printBill(){window.print();}
 
-  return <AuthGuard requiredPermission="bill">
+  return <AuthGuard allowedRoles={["admin"]}>
     <div className="bill-app" style={{display:"flex",minHeight:"100vh"}}>
       <div className="no-print"><Sidebar/></div>
       <main style={{flex:1,padding:"28px",minWidth:0}}>

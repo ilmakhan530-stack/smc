@@ -76,7 +76,7 @@ export default function StockPage() {
   }
 
   return (
-    <AuthGuard requiredPermission="stock">
+    <AuthGuard allowedRoles={["admin", "stock"]}>
       <div style={{ display: "flex", minHeight: "100vh" }}>
         <Sidebar />
         <main style={{ flex: 1, padding: 28, background: "#f7faff" }}>
