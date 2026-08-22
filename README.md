@@ -20,7 +20,3 @@
 Important: Firebase client configuration is safe to use in a web app, but Firestore Security Rules must protect the `users` collection and all business data. Do not put Firebase Admin SDK private keys in this repository.
 
 Custom domain: smc.site.je
-
-
-## Bill shared-data permission fix
-See `BILL-FIREBASE-PERMISSION-FIX.md`. The Bill user's Firebase permissions must allow reads/writes to the shared `billSellers`, `billBuyers`, `billDescriptions`, and related Bill collections.

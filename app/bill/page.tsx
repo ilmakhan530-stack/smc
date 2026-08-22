@@ -4,9 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import AuthGuard from "@/components/AuthGuard";
 import { addDoc, collection, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { db } from "@/lib/firebase";
 import { FileText, Plus, Printer, Save, X, Pencil, Trash2 } from "lucide-react";
 
 type Party = { id:string; name:string; address?:string; gstin?:string; state?:string; stateCode?:string; mobile?:string };
@@ -71,6 +70,7 @@ export default function BillPage(){
 
   useEffect(()=>{
     let cleanups: Array<() => void> = [];
+
     const stopAuth = onAuthStateChanged(auth, user => {
       cleanups.forEach(fn => fn());
       cleanups = [];
@@ -78,40 +78,40 @@ export default function BillPage(){
 
       setError("");
 
-      const readError = (label:string) => (err:any) => {
-        console.error(`${label} load failed`, err);
-        setError(`${label} load nahi hua. Firebase permission/rules check karo.`);
+      const loadError = (name:string) => (e:any) => {
+        console.error(`${name} load failed`, e);
+        setError(`${name} load nahi hua. Firebase permission/rules check karo.`);
       };
 
       cleanups.push(onSnapshot(
         collection(db,"billSellers"),
         s=>setSellers(s.docs.map(d=>({id:d.id,...d.data()} as Party))),
-        readError("Saved sellers")
+        loadError("Saved sellers")
       ));
       cleanups.push(onSnapshot(
         collection(db,"billBuyers"),
         s=>setBuyers(s.docs.map(d=>({id:d.id,...d.data()} as Party))),
-        readError("Saved buyers")
+        loadError("Saved buyers")
       ));
       cleanups.push(onSnapshot(
         collection(db,"billDescriptions"),
         s=>setDescriptions(s.docs.map(d=>({id:d.id,...d.data()} as Description))),
-        readError("Saved descriptions")
+        loadError("Saved descriptions")
       ));
       cleanups.push(onSnapshot(
         collection(db,"billDispatchDocs"),
         s=>setSavedDispatchDocs(s.docs.map(d=>String((d.data() as any).value||"")).filter(Boolean)),
-        readError("Saved dispatch documents")
+        loadError("Saved dispatch documents")
       ));
       cleanups.push(onSnapshot(
         collection(db,"billDispatchedThrough"),
         s=>setSavedDispatchedThrough(s.docs.map(d=>String((d.data() as any).value||"")).filter(Boolean)),
-        readError("Saved dispatched-through values")
+        loadError("Saved dispatched-through values")
       ));
       cleanups.push(onSnapshot(
         collection(db,"billDestinations"),
         s=>setSavedDestinations(s.docs.map(d=>String((d.data() as any).value||"")).filter(Boolean)),
-        readError("Saved destinations")
+        loadError("Saved destinations")
       ));
 
       getDoc(doc(db,"billDefaults","global")).then(s=>{
@@ -123,8 +123,8 @@ export default function BillPage(){
         setDispatchedThrough(d.dispatchedThrough||"");
         setDestination(d.destination||"");
         setTerms(d.terms||"");
-      }).catch((err)=>{
-        console.error("Bill defaults load failed", err);
+      }).catch(e=>{
+        console.error("Bill defaults load failed", e);
       });
     });
 

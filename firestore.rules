@@ -7,66 +7,64 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function profile() {
+    function userProfile() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isAdmin() {
-      return signedIn() && profile().role == "admin";
+      return signedIn() && userProfile().role == "admin";
     }
 
-    function hasBillPermission() {
+    function hasBillAccess() {
       return signedIn()
-        && profile().enabled != false
+        && userProfile().get("enabled", true) == true
         && (
-          profile().role == "admin"
-          || profile().get("permissions", {}).get("bill", false) == true
+          userProfile().role == "admin"
+          || userProfile().role == "bill"
+          || userProfile().get("permissions", {}).get("bill", false) == true
         );
     }
 
-    // Users can always read only their own profile.
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow write: if isAdmin();
     }
 
-    // Shared data used by the Bill / Tax Invoice module.
-    // Admins and users who have Bill permission can read/write these collections.
+    // Shared Bill / Tax Invoice master data.
+    // Admin-saved data is therefore visible to authorized Bill users.
     match /billSellers/{id} {
-      allow read, write: if hasBillPermission();
+      allow read, write: if hasBillAccess();
     }
 
     match /billBuyers/{id} {
-      allow read, write: if hasBillPermission();
+      allow read, write: if hasBillAccess();
     }
 
     match /billDescriptions/{id} {
-      allow read, write: if hasBillPermission();
+      allow read, write: if hasBillAccess();
     }
 
     match /billDispatchDocs/{id} {
-      allow read, write: if hasBillPermission();
+      allow read, write: if hasBillAccess();
     }
 
     match /billDispatchedThrough/{id} {
-      allow read, write: if hasBillPermission();
+      allow read, write: if hasBillAccess();
     }
 
     match /billDestinations/{id} {
-      allow read, write: if hasBillPermission();
+      allow read, write: if hasBillAccess();
     }
 
     match /billDefaults/{id} {
-      allow read, write: if hasBillPermission();
+      allow read, write: if hasBillAccess();
     }
 
     match /bills/{id} {
-      allow read, write: if hasBillPermission();
+      allow read, write: if hasBillAccess();
     }
 
-    // Keep all other collections protected. Merge these rules with any
-    // existing business-data rules before deploying if your Firebase project
-    // already has additional collections.
+    // Keep unrelated application collections restricted to Admin.
     match /{document=**} {
       allow read, write: if isAdmin();
     }
