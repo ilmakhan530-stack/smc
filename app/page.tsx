@@ -9,11 +9,15 @@ export default function Home() {
   return (
     <main className={styles.home}>
       <header className={styles.header}>
-        <Link href="/" className={styles.brand}>
-          <img src="/smc-logo.jpg" alt="Shivansh Machinery Co. logo" />
-          <div><b>SHIVANSH MACHINERY CO. (L.L.P.)</b><span>LPG REGULATOR MANUFACTURER</span></div>
-        </Link>
-        <Link href="/login" className={styles.loginBtn}>Login</Link>
+        <div className={styles.brand}>
+          <Link href="/login" aria-label="SMC secure login" title="Secure Login">
+            <img src="/smc-logo.jpg" alt="Shivansh Machinery Co. logo" />
+          </Link>
+          <div>
+            <b>SHIVANSH MACHINERY CO. (L.L.P.)</b>
+            <span>LPG REGULATOR MANUFACTURER</span>
+          </div>
+        </div>
       </header>
 
       <section className={styles.hero}>

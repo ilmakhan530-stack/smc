@@ -26,6 +26,11 @@ export default function AuthGuard({
   const [role, setRole] = useState<UserRole>("attendance");
   const [error, setError] = useState("");
 
+  // Parent pages recreate inline allowedRoles arrays on every state update.
+  // Use a stable string key so typing in any form does NOT restart the
+  // auth check, unmount the page, or steal input focus.
+  const allowedRolesKey = allowedRoles?.join("|") || "";
+
   useEffect(() => {
     let alive = true;
     const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
@@ -84,7 +89,7 @@ export default function AuthGuard({
       alive = false;
       unsubscribe();
     };
-  }, [router, pathname, allowedRoles]);
+  }, [router, pathname, allowedRolesKey]);
 
   if (loading) {
     return <div style={{minHeight:"100vh",display:"grid",placeItems:"center",background:"#f6f9ff",fontFamily:"Arial"}}>Checking secure access…</div>;
