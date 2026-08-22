@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import AuthGuard from "@/components/AuthGuard";
 import { addDoc, collection, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import { FileText, Plus, Printer, Save, X, Pencil, Trash2 } from "lucide-react";
 
@@ -68,23 +70,68 @@ export default function BillPage(){
   const [error,setError]=useState("");
 
   useEffect(()=>{
-    const u1=onSnapshot(collection(db,"billSellers"),s=>setSellers(s.docs.map(d=>({id:d.id,...d.data()} as Party))));
-    const u2=onSnapshot(collection(db,"billBuyers"),s=>setBuyers(s.docs.map(d=>({id:d.id,...d.data()} as Party))));
-    const u3=onSnapshot(collection(db,"billDescriptions"),s=>setDescriptions(s.docs.map(d=>({id:d.id,...d.data()} as Description))));
-    const u4=onSnapshot(collection(db,"billDispatchDocs"),s=>setSavedDispatchDocs(s.docs.map(d=>String((d.data() as any).value||"")).filter(Boolean)));
-    const u5=onSnapshot(collection(db,"billDispatchedThrough"),s=>setSavedDispatchedThrough(s.docs.map(d=>String((d.data() as any).value||"")).filter(Boolean)));
-    const u6=onSnapshot(collection(db,"billDestinations"),s=>setSavedDestinations(s.docs.map(d=>String((d.data() as any).value||"")).filter(Boolean)));
-    getDoc(doc(db,"billDefaults","global")).then(s=>{
-      if(!s.exists()) return;
-      const d=s.data() as any;
-      setDeliveryNote(d.deliveryNote||"");
-      setBuyersOrder(d.buyersOrder||"");
-      setDispatchDoc(d.dispatchDoc||"");
-      setDispatchedThrough(d.dispatchedThrough||"");
-      setDestination(d.destination||"");
-      setTerms(d.terms||"");
-    }).catch(()=>{});
-    return ()=>{u1();u2();u3();u4();u5();u6()};
+    let cleanups: Array<() => void> = [];
+    const stopAuth = onAuthStateChanged(auth, user => {
+      cleanups.forEach(fn => fn());
+      cleanups = [];
+      if(!user) return;
+
+      setError("");
+
+      const readError = (label:string) => (err:any) => {
+        console.error(`${label} load failed`, err);
+        setError(`${label} load nahi hua. Firebase permission/rules check karo.`);
+      };
+
+      cleanups.push(onSnapshot(
+        collection(db,"billSellers"),
+        s=>setSellers(s.docs.map(d=>({id:d.id,...d.data()} as Party))),
+        readError("Saved sellers")
+      ));
+      cleanups.push(onSnapshot(
+        collection(db,"billBuyers"),
+        s=>setBuyers(s.docs.map(d=>({id:d.id,...d.data()} as Party))),
+        readError("Saved buyers")
+      ));
+      cleanups.push(onSnapshot(
+        collection(db,"billDescriptions"),
+        s=>setDescriptions(s.docs.map(d=>({id:d.id,...d.data()} as Description))),
+        readError("Saved descriptions")
+      ));
+      cleanups.push(onSnapshot(
+        collection(db,"billDispatchDocs"),
+        s=>setSavedDispatchDocs(s.docs.map(d=>String((d.data() as any).value||"")).filter(Boolean)),
+        readError("Saved dispatch documents")
+      ));
+      cleanups.push(onSnapshot(
+        collection(db,"billDispatchedThrough"),
+        s=>setSavedDispatchedThrough(s.docs.map(d=>String((d.data() as any).value||"")).filter(Boolean)),
+        readError("Saved dispatched-through values")
+      ));
+      cleanups.push(onSnapshot(
+        collection(db,"billDestinations"),
+        s=>setSavedDestinations(s.docs.map(d=>String((d.data() as any).value||"")).filter(Boolean)),
+        readError("Saved destinations")
+      ));
+
+      getDoc(doc(db,"billDefaults","global")).then(s=>{
+        if(!s.exists()) return;
+        const d=s.data() as any;
+        setDeliveryNote(d.deliveryNote||"");
+        setBuyersOrder(d.buyersOrder||"");
+        setDispatchDoc(d.dispatchDoc||"");
+        setDispatchedThrough(d.dispatchedThrough||"");
+        setDestination(d.destination||"");
+        setTerms(d.terms||"");
+      }).catch((err)=>{
+        console.error("Bill defaults load failed", err);
+      });
+    });
+
+    return ()=>{
+      stopAuth();
+      cleanups.forEach(fn => fn());
+    };
   },[]);
 
   async function saveBillDefault(field:string,value:string){

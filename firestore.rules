@@ -1,0 +1,74 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return signedIn() && profile().role == "admin";
+    }
+
+    function hasBillPermission() {
+      return signedIn()
+        && profile().enabled != false
+        && (
+          profile().role == "admin"
+          || profile().get("permissions", {}).get("bill", false) == true
+        );
+    }
+
+    // Users can always read only their own profile.
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Shared data used by the Bill / Tax Invoice module.
+    // Admins and users who have Bill permission can read/write these collections.
+    match /billSellers/{id} {
+      allow read, write: if hasBillPermission();
+    }
+
+    match /billBuyers/{id} {
+      allow read, write: if hasBillPermission();
+    }
+
+    match /billDescriptions/{id} {
+      allow read, write: if hasBillPermission();
+    }
+
+    match /billDispatchDocs/{id} {
+      allow read, write: if hasBillPermission();
+    }
+
+    match /billDispatchedThrough/{id} {
+      allow read, write: if hasBillPermission();
+    }
+
+    match /billDestinations/{id} {
+      allow read, write: if hasBillPermission();
+    }
+
+    match /billDefaults/{id} {
+      allow read, write: if hasBillPermission();
+    }
+
+    match /bills/{id} {
+      allow read, write: if hasBillPermission();
+    }
+
+    // Keep all other collections protected. Merge these rules with any
+    // existing business-data rules before deploying if your Firebase project
+    // already has additional collections.
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
