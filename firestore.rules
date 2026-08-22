@@ -12,15 +12,17 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn() && userProfile().role == "admin";
+      return signedIn() && userProfile().get("role", "") == "admin";
     }
 
+    // Bill access is intentionally shared: anything saved by Admin in the
+    // Bill master-data collections can be read by an enabled Bill user.
     function hasBillAccess() {
       return signedIn()
         && userProfile().get("enabled", true) == true
         && (
-          userProfile().role == "admin"
-          || userProfile().role == "bill"
+          userProfile().get("role", "") == "admin"
+          || userProfile().get("role", "") == "bill"
           || userProfile().get("permissions", {}).get("bill", false) == true
         );
     }
@@ -30,8 +32,7 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Shared Bill / Tax Invoice master data.
-    // Admin-saved data is therefore visible to authorized Bill users.
+    // All reusable data shown in Bill / Tax Invoice dropdowns.
     match /billSellers/{id} {
       allow read, write: if hasBillAccess();
     }
@@ -64,7 +65,7 @@ service cloud.firestore {
       allow read, write: if hasBillAccess();
     }
 
-    // Keep unrelated application collections restricted to Admin.
+    // Other application data remains Admin-only.
     match /{document=**} {
       allow read, write: if isAdmin();
     }
